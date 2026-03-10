@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BabySuite Super Laudo</title>
+<link href="./favicon.ico" rel="icon" type="image/x-icon"/>
+<link href="./styles.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<style>
+  :root {
+    --index2-topbar-h: 69px;
+    --index2-purple: #7b529f;
+    --index2-green: #5fc6c8;
+    --index2-green-dark: #38aeb1;
+  }
+
+  body.index2-body {
+    padding-top: 0;
+  }
+
+  body.index2-body .index2-stage {
+    height: calc(100vh - var(--index2-topbar-h));
+    margin-top: 0;
+  }
+
+  body.index2-body .topbar {
+    top: 0;
+  }
+
+  body.index2-body .index2-stage .tab-panel {
+    inset: 0;
+  }
+
+  body.index2-body #btnModelos {
+    border: 1px solid rgba(95, 198, 200, 0.65);
+    background: var(--index2-green);
+    color: #111827;
+    box-shadow: 0 10px 22px rgba(95, 198, 200, 0.22);
+  }
+
+  body.index2-body #btnFrases,
+  body.index2-body #btnModelos,
+  body.index2-body #btnTabToggle {
+    height: 42px;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  body.index2-body #btnModelos.is-laudo,
+  body.index2-body #btnTabToggle {
+    border: 1px solid rgba(123, 82, 159, 0.22);
+    box-shadow: 0 10px 22px rgba(16, 24, 40, 0.08);
+  }
+
+  body.index2-body #btnModelos.is-modelos {
+    border: 1px solid rgba(95, 198, 200, 0.65);
+    background: var(--index2-green);
+    color: #111827;
+    box-shadow: 0 10px 22px rgba(95, 198, 200, 0.22);
+  }
+
+  body.index2-body #btnModelos.is-laudo,
+  body.index2-body #btnTabToggle.is-print {
+    background: #ffffff;
+    color: var(--index2-purple);
+  }
+
+  body.index2-body #btnModelos.is-laudo,
+  body.index2-body #btnTabToggle.is-laudo {
+    border-color: transparent;
+    background: var(--index2-purple);
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(123, 82, 159, 0.22);
+  }
+
+  body.index2-body.is-print-tab #btnModelos,
+  body.index2-body.is-print-tab #btnFrases,
+  body.index2-body.is-modelos-tab #btnFrases {
+    display: none;
+  }
+
+  body.index2-body .modelos-tab-wrap {
+    height: 100%;
+    padding: 18px;
+    overflow: auto;
+  }
+
+  body.index2-body .modelos-page-title {
+    margin: 4px 0 18px;
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--index2-purple);
+    letter-spacing: 0.2px;
+  }
+
+  body.index2-body .modelos-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  body.index2-body .modelos-column {
+    min-height: 100%;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  body.index2-body .modelos-column-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 900;
+    color: #16324f;
+    position: relative;
+    z-index: 1;
+  }
+
+  body.index2-body .modelos-column-art {
+    height: 156px;
+    margin: 8px 0 16px;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  body.index2-body .modelos-column-art::before,
+  body.index2-body .modelos-column-art::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    border-radius: 999px;
+    opacity: 0.9;
+  }
+
+  body.index2-body .modelos-column-art::before {
+    width: 190px;
+    height: 190px;
+    left: -8px;
+    top: 12px;
+  }
+
+  body.index2-body .modelos-column-art::after {
+    width: 112px;
+    height: 112px;
+    right: 18px;
+    top: 20px;
+  }
+
+  body.index2-body .modelos-column-art span {
+    position: absolute;
+    left: 26px;
+    right: 26px;
+    top: 72px;
+    height: 4px;
+    border-radius: 999px;
+    opacity: 0.75;
+  }
+
+  body.index2-body .modelos-column-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  body.index2-body .modelos-column-list .btn-modelo-item {
+    font-size: 18px;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  body.index2-body .modelos-column-empty {
+    opacity: 0.6;
+    font-size: 14px;
+  }
+
+  body.index2-body .modelos-column-gineco {
+    background: linear-gradient(180deg, rgba(255, 241, 247, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: rgba(230, 153, 188, 0.35);
+  }
+
+  body.index2-body .modelos-column-gineco .modelos-column-title {
+    color: #9f3f73;
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    right: 22px;
+    z-index: 2;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.72);
+  }
+
+  body.index2-body .modelos-column-gineco .modelos-column-art {
+    background: transparent;
+    margin-top: 0;
+  }
+
+  body.index2-body .modelos-column-gineco .modelos-column-art::before,
+  body.index2-body .modelos-column-gineco .modelos-column-art::after {
+    display: none;
+  }
+
+  body.index2-body .modelos-column-gineco .modelos-column-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center top;
+    display: block;
+    filter: drop-shadow(0 10px 20px rgba(208, 99, 151, 0.14));
+  }
+
+  body.index2-body .modelos-column-gineco .modelos-column-art span {
+    background: rgba(208, 99, 151, 0.18);
+    top: auto;
+    bottom: 18px;
+  }
+
+  body.index2-body .modelos-column-vascular {
+    background: linear-gradient(180deg, rgba(255, 242, 240, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: rgba(219, 116, 106, 0.34);
+  }
+
+  body.index2-body .modelos-column-vascular .modelos-column-title {
+    color: #b2463e;
+  }
+
+  body.index2-body .modelos-column-vascular .modelos-column-art {
+    background: linear-gradient(135deg, rgba(236, 148, 140, 0.30), rgba(255, 255, 255, 0));
+  }
+
+  body.index2-body .modelos-column-vascular .modelos-column-art::before,
+  body.index2-body .modelos-column-vascular .modelos-column-art::after,
+  body.index2-body .modelos-column-vascular .modelos-column-art span {
+    background: rgba(195, 78, 67, 0.28);
+  }
+
+  body.index2-body .modelos-column-musculo {
+    background: linear-gradient(180deg, rgba(240, 247, 255, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: rgba(106, 154, 224, 0.34);
+  }
+
+  body.index2-body .modelos-column-musculo .modelos-column-title {
+    color: #3569b3;
+  }
+
+  body.index2-body .modelos-column-musculo .modelos-column-art {
+    background: linear-gradient(135deg, rgba(139, 181, 239, 0.28), rgba(255, 255, 255, 0));
+  }
+
+  body.index2-body .modelos-column-musculo .modelos-column-art::before,
+  body.index2-body .modelos-column-musculo .modelos-column-art::after,
+  body.index2-body .modelos-column-musculo .modelos-column-art span {
+    background: rgba(73, 121, 198, 0.24);
+  }
+
+  body.index2-body .modelos-column-interna {
+    background: linear-gradient(180deg, rgba(240, 252, 247, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: rgba(103, 183, 142, 0.34);
+  }
+
+  body.index2-body .modelos-column-interna .modelos-column-title {
+    color: #2d8a64;
+  }
+
+  body.index2-body .modelos-column-interna .modelos-column-art {
+    background: linear-gradient(135deg, rgba(129, 205, 166, 0.26), rgba(255, 255, 255, 0));
+  }
+
+  body.index2-body .modelos-column-interna .modelos-column-art::before,
+  body.index2-body .modelos-column-interna .modelos-column-art::after,
+  body.index2-body .modelos-column-interna .modelos-column-art span {
+    background: rgba(58, 153, 108, 0.22);
+  }
+
+  @media (max-width: 1200px) {
+    body.index2-body .modelos-grid {
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    body.index2-body .modelos-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="index2-body">
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand">BabySuite - Relatórios Automatizados</div>
+  </div>
+  <div class="topbar-right" id="topbarActions">
+    <button class="btn btn-modelos" id="btnModelos">Modelos</button>
+    <button class="btn btn-frases" id="btnFrases">Frases</button>
+    <button class="btn btn-json" id="btnJSON" hidden>JSON</button>
+    <button class="btn btn-modelos" id="btnTabToggle" type="button">Impressão</button>
+  </div>
+</header>
+
+<div class="tab-stage index2-stage">
+  <section id="tab-laudo" class="tab-panel is-active">
+    <main class="main">
+      <section class="left-pane" id="leftPane">
+        <div class="pane-title">Botões</div>
+        <div class="left-section">
+          <div class="section-header">NomeFrases</div>
+          <div class="button-grid" id="botoes_nome_frases"></div>
+        </div>
+        <div class="left-section bottom">
+          <div class="section-header">Palavras Modificadoras</div>
+          <div class="button-grid" id="botoes_palavras_modificadoras"></div>
+        </div>
+      </section>
+
+      <div class="splitter" id="splitter" title="Arraste para ajustar"></div>
+
+      <section class="right-pane" id="rightPane">
+        <div class="right-top">
+          <div class="pane-title">Relatório Ultrassonográfico</div>
+          <div class="quill-toolbar" id="quillToolbar"></div>
+          <div class="quill-editor" id="editorRelatorio"></div>
+        </div>
+
+        <div class="h-split"></div>
+
+        <div class="right-bottom">
+          <div class="pane-title">PROMPT para IA-Baby</div>
+          <textarea class="prompt-area" id="campoPrompt" spellcheck="false"></textarea>
+
+          <div class="analise-selector" id="analiseSelector">
+            <button class="analise-btn" id="analiseBtn" title="Tipo de análise">
+              <span id="analiseLabel">Ambos</span>
+              <span class="analise-caret">▴</span>
+            </button>
+
+            <div class="analise-menu" id="analiseMenu" aria-hidden="true">
+              <button class="analise-item" data-choice="OCR">OCR</button>
+              <button class="analise-item" data-choice="SR">SR</button>
+              <button class="analise-item" data-choice="Ambos">Ambos</button>
+            </div>
+          </div>
+
+          <button class="btn-sr" id="SRButton" title="Mostrar relatório SR" aria-disabled="true">
+            <img alt="SR" src="./SRreport.svg" />
+          </button>
+          <button class="btn-iahelp" id="IAButton"><img alt="IA Help" src="./IAhelp.svg" style="width:48px;height:48px;display:block;"/></button>
+        </div>
+      </section>
+
+      <div class="splitter splitter-right" hidden="" id="splitter2" title="Arraste para ajustar"></div>
+
+      <section aria-hidden="true" class="frases-pane" id="frasesPane">
+        <div class="pane-title">(4) Frases do Modelo</div>
+        <div class="editable-area frases-area" contenteditable="true" id="campoFrases" spellcheck="false"></div>
+      </section>
+    </main>
+  </section>
+
+  <section id="tab-print" class="tab-panel">
+    <div class="print-wrap">
+      <h2 class="print-title">Impressão</h2>
+      <div id="print-status">Nenhuma imagem recebida ainda.</div>
+      <div class="print-actions">
+        <button class="btn" id="btnSendPrintImages" type="button">Enviar imagens</button>
+        <button class="btn btn-print" id="btnPrintLayout" type="button">
+          <span class="btn-print-icon" aria-hidden="true">🖨</span>
+          Imprimir
+        </button>
+        <button class="btn btn-fechar" id="btnClearPrintImages" type="button">Limpar</button>
+      </div>
+      <div class="print-endpoint-wrap">
+        <label for="printUploadEndpoint">Endpoint de envio (opcional):</label>
+        <input id="printUploadEndpoint" type="url" placeholder="https://seu-endpoint/upload" />
+      </div>
+
+      <div class="print-grid" id="printGrid"></div>
+    </div>
+  </section>
+
+  <section id="tab-modelos" class="tab-panel">
+    <div class="modelos-tab-wrap">
+      <h1 class="modelos-page-title">Modelos de Laudos Estruturados</h1>
+      <div class="modelos-grid">
+        <section class="modelos-column modelos-column-gineco">
+          <h2 class="modelos-column-title">Ginecologia Obstetrícia</h2>
+          <div class="modelos-column-art" aria-hidden="true">
+            <img alt="" src="./GO.png" />
+            <span></span>
+          </div>
+          <div class="modelos-column-list" id="listaModelosGineco"></div>
+        </section>
+        <section class="modelos-column modelos-column-vascular">
+          <h2 class="modelos-column-title">Vascular</h2>
+          <div class="modelos-column-art" aria-hidden="true"><span></span></div>
+          <div class="modelos-column-list" id="listaModelosVascular"></div>
+        </section>
+        <section class="modelos-column modelos-column-musculo">
+          <h2 class="modelos-column-title">Músculo</h2>
+          <div class="modelos-column-art" aria-hidden="true"><span></span></div>
+          <div class="modelos-column-list" id="listaModelosMusculo"></div>
+        </section>
+        <section class="modelos-column modelos-column-interna">
+          <h2 class="modelos-column-title">Medicina Interna</h2>
+          <div class="modelos-column-art" aria-hidden="true"><span></span></div>
+          <div class="modelos-column-list" id="listaModelosMedicinaInterna"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="./script_main.js"></script>
+<script src="./script_IA.js"></script>
+<script src="./bridge_client.js"></script>
+<script>
+  (function () {
+    const panels = document.querySelectorAll(".tab-panel");
+    const modelosBtn = document.getElementById("btnModelos");
+    const toggleBtn = document.getElementById("btnTabToggle");
+
+    function activate(tabId) {
+      panels.forEach((p) => p.classList.toggle("is-active", p.id === tabId));
+
+      document.body.classList.toggle("is-print-tab", tabId === "tab-print");
+      document.body.classList.toggle("is-modelos-tab", tabId === "tab-modelos");
+
+      if (toggleBtn) {
+        const isPrint = tabId === "tab-print";
+        toggleBtn.textContent = isPrint ? "Laudo" : "Impressão";
+        toggleBtn.classList.toggle("is-print", !isPrint);
+        toggleBtn.classList.toggle("is-laudo", isPrint);
+      }
+
+      if (modelosBtn) {
+        const isModelos = tabId === "tab-modelos";
+        modelosBtn.textContent = isModelos ? "Laudo" : "Modelos";
+        modelosBtn.classList.toggle("is-modelos", !isModelos);
+        modelosBtn.classList.toggle("is-laudo", isModelos);
+      }
+    }
+
+    if (modelosBtn) {
+      modelosBtn.addEventListener("click", () => {
+        const activePanel = document.querySelector(".tab-panel.is-active");
+        const nextTab = activePanel?.id === "tab-modelos" ? "tab-laudo" : "tab-modelos";
+        activate(nextTab);
+      });
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        const activePanel = document.querySelector(".tab-panel.is-active");
+        const nextTab = activePanel?.id === "tab-print" ? "tab-laudo" : "tab-print";
+        activate(nextTab);
+      });
+    }
+
+    window.activateIndex2Tab = activate;
+    activate("tab-laudo");
+  })();
+</script>
+</body>
+</html>

@@ -6,6 +6,12 @@ let PlavrasModificadoras = ["Direito", "Esquerdo", "medindo", "supraespinal", "i
 let modelos = [];
 
 let activeLineIndex = -1; // linha ativa no PROMPT (0-based)
+const MODELO_GROUPS = [
+  "Ginecologia Obstetrícia",
+  "Vascular",
+  "Músculo",
+  "Medicina Interna"
+];
 
 // Relatório normal (HTML) inicial: US Partes Moles (Arial 12)
 let RelatorioNormal = `
@@ -60,10 +66,28 @@ async function atualizarModelosDaPasta(){
       throw new Error("index.json não contém um array válido.");
     }
 
-    // limpa e normaliza
-    modelos = lista
+    const nomes = lista
       .map(n => String(n).trim())
       .filter(Boolean);
+
+    const modelosComGrupo = await Promise.all(
+      nomes.map(async (nome) => {
+        try{
+          const modelResp = await fetch(`./modelos/${nome}.json`, { cache: "no-store" });
+          if (!modelResp.ok) throw new Error(`HTTP ${modelResp.status}`);
+          const data = await modelResp.json();
+          return {
+            nome,
+            grupo: MODELO_GROUPS.includes(data.grupo) ? data.grupo : "Medicina Interna"
+          };
+        } catch (err){
+          console.warn(`Não foi possível ler o grupo do modelo ${nome}:`, err);
+          return { nome, grupo: "Medicina Interna" };
+        }
+      })
+    );
+
+    modelos = modelosComGrupo;
 
     renderModelos(); // sua função que recria os botões
 
@@ -407,28 +431,39 @@ function setEditorHTML(html){
 // PAINEL MODELOS
 // =========================
 function renderModelos(){
-  const list = el("listaModelos");
-  clearNode(list);
+  const groupsMap = {
+    "Ginecologia Obstetrícia": el("listaModelosGineco"),
+    "Vascular": el("listaModelosVascular"),
+    "Músculo": el("listaModelosMusculo"),
+    "Medicina Interna": el("listaModelosMedicinaInterna")
+  };
 
-  modelos.forEach(m => {
+  Object.values(groupsMap).forEach((node) => {
+    if (node) clearNode(node);
+  });
+
+  modelos.forEach((modelo) => {
+    const target = groupsMap[modelo.grupo] || groupsMap["Medicina Interna"];
+    if (!target) return;
+
     const b = document.createElement("button");
     b.type = "button";
     b.className = "btn-modelo-item";
-    b.textContent = m;
-    b.addEventListener("click", () => atualizaVariaveis(m));
-    list.appendChild(b);
+    b.textContent = modelo.nome;
+    b.addEventListener("click", () => atualizaVariaveis(modelo.nome));
+    target.appendChild(b);
+  });
+
+  Object.entries(groupsMap).forEach(([, node]) => {
+    if (!node || node.children.length > 0) return;
+    const empty = document.createElement("div");
+    empty.className = "modelos-column-empty";
+    empty.textContent = "Sem modelos neste grupo.";
+    node.appendChild(empty);
   });
 }
 
-function togglePainelModelos(force){
-  const painel = el("painelModelos");
-  const willOpen = (typeof force === "boolean") ? force : !painel.classList.contains("open");
-  painel.classList.toggle("open", willOpen);
-  painel.setAttribute("aria-hidden", String(!willOpen));
-}
-
 function wireModelosUI(){
-  el("btnModelos").addEventListener("click", () => togglePainelModelos());
   const bf = el("btnFrases");
   if (bf) bf.addEventListener("click", () => toggleFrasesPane());
   const bjson = el("btnJSON");
@@ -498,7 +533,6 @@ async function atualizaVariaveis(nomeModelo){
 
     if (!resp.ok){
       console.warn(`Não consegui ler ${url} (HTTP ${resp.status}). Mantendo variáveis atuais.`);
-      togglePainelModelos(false);
       return;
     }
 
@@ -522,11 +556,12 @@ async function atualizaVariaveis(nomeModelo){
       setFrasesContent(FrasesdoModelo);
     }
     renderButtons();
-    togglePainelModelos(false);
     atualizaLayoutPorQuantidadeDeFrases();
+    if (typeof window.activateIndex2Tab === "function") {
+      window.activateIndex2Tab("tab-laudo");
+    }
   } catch(err){
     console.error("Erro em atualizaVariaveis:", err);
-    togglePainelModelos(false);
   }
 }
 
