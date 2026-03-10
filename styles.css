@@ -1,0 +1,848 @@
+/* Cinebaby theme refresh
+   - Keeps your existing class names/layout from styles.css
+   - Updates colors/typography to match index-gDSHDfVD.css (Inter + soft card UI + Cinebaby purple/turquoise)
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+  /* Brand */
+  --cinebaby-purple: #7B529F;
+  --cinebaby-turquoise: #5FC6C8;
+  --cinebaby-gradient: linear-gradient(135deg, var(--cinebaby-purple), var(--cinebaby-turquoise));
+  --cinebaby-gradient-soft: linear-gradient(
+    135deg,
+    rgba(123,82,159,.10),
+    rgba(95,198,200,.10)
+  );
+
+  /* Shadcn-like tokens (as in index-gDSHDfVD.css) */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 188 55% 55%;          /* turquoise-ish ring */
+  --radius: 14px;
+
+  /* App-specific */
+  --shadow: 0 10px 30px rgba(16, 24, 40, .10);
+  --shadow-strong: 0 18px 55px rgba(16, 24, 40, .18);
+  --glass: rgba(255,255,255,.70);
+  --glass-strong: rgba(255,255,255,.86);
+  --ink: #0f172a;
+  --ink-2: #1f2a44;
+  --muted-ink: #617089;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: hsl(var(--foreground));
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(123,82,159,.12), transparent 60%),
+    radial-gradient(900px 500px at 85% 20%, rgba(95,198,200,.16), transparent 55%),
+    linear-gradient(180deg, #fbfdff, #f3f7ff);
+}
+
+/* ===== Tabs (top, estilo Cinebaby) ===== */
+.tabsbar{
+  position: sticky;
+  top: 56px; /* se sua topbar tem ~56px; ajuste se necessário */
+  z-index: 19;
+
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+
+  background: rgba(255,255,255,.70);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(15,23,42,.10);
+}
+
+.tab-btn{
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.85);
+  color: #0f172a;
+  border-radius: 14px;
+  padding: 9px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.tab-btn:hover{
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(123,82,159,.10), rgba(95,198,200,.10));
+  border-color: rgba(123,82,159,.25);
+}
+
+.tab-btn.active{
+  border: none;
+  background: linear-gradient(135deg, #7B529F, #5FC6C8);
+  color: white;
+  box-shadow: 0 12px 28px rgba(123,82,159,.18);
+}
+
+/* Stage que contém as páginas */
+.tab-stage{
+  height: calc(100vh - 56px - 52px); /* topbar + tabsbar (aprox). ajuste se precisar */
+  min-height: 0;
+}
+
+/* Cada "página" (aba) ocupa o mesmo espaço */
+.tab-panel{
+  position: absolute;
+  inset: calc(56px + 52px) 0 0 0; /* topbar + tabsbar */
+  /* Se preferir mais simples, remova inset e use .tab-stage position:relative */
+  
+  /* mantém no DOM e rodando */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition: opacity .15s ease;
+}
+
+/* Aba ativa */
+.tab-panel.is-active{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Se quiser organizar melhor: */
+.tab-stage{ position: relative; }
+.tab-panel{ inset: 0; } /* se usar tab-stage relative, fica mais simples */
+
+/* Iframes de ferramenta */
+.tool-iframe{
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+
+/* Dummy impressão */
+.print-wrap{
+  height: 100%;
+  padding: 18px;
+  overflow: auto;
+}
+
+.print-title{
+  margin: 0 0 14px 0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.print-grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 14px;
+  max-width: 900px;
+}
+
+.print-box{
+  background: #000;
+  border-radius: 14px;
+  aspect-ratio: 1 / 1;
+}
+
+/* =========================
+   Topbar
+   ========================= */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px 16px;
+
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid hsl(var(--border));
+  box-shadow: 0 6px 18px rgba(16,24,40,.06);
+}
+
+.brand{
+  font-weight: 900;
+  letter-spacing: .2px;
+  font-size: 22px;
+  background: var(--cinebaby-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.topbar-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  position:relative;
+}
+
+/* =========================
+   Buttons
+   ========================= */
+.btn{
+  border: 1px solid rgba(15, 23, 42, .08);
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-weight: 800;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 6px 16px rgba(16,24,40,.08);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(16,24,40,.12); }
+.btn:active{ transform: translateY(0); box-shadow: 0 6px 16px rgba(16,24,40,.08); }
+
+.btn-modelos{
+  border: none;
+  background: var(--cinebaby-gradient);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(123,82,159,.22);
+}
+
+.btn-fechar{
+  background: rgba(15,23,42,.04);
+  color: var(--muted-ink);
+  box-shadow: none;
+}
+
+/* Botão Frases / JSON */
+.btn-frases,
+.btn-json{
+  background: rgba(255,255,255,.86);
+  color: var(--ink);
+  border: 1px solid hsl(var(--border));
+  height: 44px;
+}
+
+/* =========================
+   Main layout
+   ========================= */
+.main{
+  height: calc(100% - 56px);
+  display:flex;
+  min-height: 0;
+}
+
+/* Left pane */
+.left-pane{
+  width: 18%;
+  min-width: 240px;
+  max-width: 55%;
+  background: rgba(255,255,255,.55);
+  border-right: 1px solid hsl(var(--border));
+  padding: 14px;
+  display:flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.pane-title{
+  font-weight: 900;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 2px;
+  letter-spacing: .2px;
+}
+
+.left-section{
+  background: var(--glass-strong);
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 120px;
+}
+
+.section-header{
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 900;
+  letter-spacing: .3px;
+}
+
+.button-grid{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow:auto;
+  padding-bottom: 4px;
+}
+
+.btn-chip{
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.08);
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(16,24,40,.08);
+  font-weight: 800;
+  color: var(--ink);
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.btn-chip:hover{
+  transform: translateY(-1px);
+  background: var(--cinebaby-gradient-soft);
+  border-color: rgba(123,82,159,.35);
+}
+
+/* Keep your semantic colors but re-map to brand */
+.btn-blue{
+  background: rgba(95,198,200,.18);
+  color: #0b2a4a;
+  border-color: rgba(95,198,200,.35);
+}
+.btn-orange{
+  background: rgba(123,82,159,.16);
+  color: #2a1a3a;
+  border-color: rgba(123,82,159,.35);
+}
+
+/* Splitter vertical */
+.splitter{
+  width: 8px;
+  cursor: col-resize;
+  background: rgba(15, 23, 42, .04);
+  border-right: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+}
+.splitter:hover{ background: rgba(15, 23, 42, .07); }
+
+/* Right pane */
+.right-pane{
+  flex: 1;
+  min-width: 260px;
+  background: transparent;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Right top/bottom */
+.right-top{
+  height: 70%;
+  min-height: 200px;
+  padding: 14px;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.right-bottom{
+  height: 30%;
+  min-height: 120px;
+  padding: 14px;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.h-split{
+  height: 1px;
+  background: hsl(var(--border));
+}
+
+/* Prompt area */
+.prompt-area{
+  width: 100%;
+  flex: 1;
+  resize: none;
+  border-radius: 18px;
+  border: 1px solid hsl(var(--border));
+  background: var(--glass-strong);
+  color: var(--ink);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  line-height: 1.45;
+}
+
+/* Área editável (DIV contenteditable) */
+.editable-area{
+  width: 100%;
+  flex: 1;
+  border-radius: 18px;
+  border: 1px solid hsl(var(--border));
+  background: var(--glass-strong);
+  color: var(--ink);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  line-height: 1.45;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+/* =========================
+   Modelos (painel atrás do botão)
+   ========================= */
+.modelos-wrap,
+.modelos-container{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.painel-modelos-inline{
+  position: absolute;
+  top: 0;
+  right: 50%;
+  height: 44px;
+  width: 0;
+  overflow: hidden;
+
+  background: var(--glass-strong);
+  border: 1px solid rgba(15,23,42,.10);
+  border-right: none;
+  border-radius: 14px 0 0 14px;
+  box-shadow: var(--shadow);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  z-index: 5;
+  transition: width 220ms ease, padding 220ms ease;
+}
+
+.painel-modelos-inline.open{
+  width: min(520px, 80vw);
+  padding: 6px 10px;
+}
+
+#btnModelos,
+.btn-modelos{ position: relative; z-index: 10; }
+.btn-frases{ position: relative; z-index: 12; }
+
+.painel-modelos-inline .lista-modelos{
+  height: 100%;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  overflow-x:auto;
+  flex-wrap: nowrap;
+  padding-right: 8px;
+}
+
+.btn-modelo-item{
+  background: rgba(123,82,159,.10);
+  color: #2a1a3a;
+  border: 1px solid rgba(123,82,159,.20);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s ease, transform .15s ease, border-color .15s ease;
+}
+.btn-modelo-item:hover{
+  background: rgba(95,198,200,.16);
+  border-color: rgba(95,198,200,.35);
+  transform: translateY(-1px);
+}
+
+/* =========================
+   Quill
+   ========================= */
+.quill-toolbar{
+  background: var(--glass);
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.quill-editor{
+  flex: 1;
+  min-height: 0;
+  border: 1px solid hsl(var(--border));
+  border-top: none;
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.quill-editor .ql-container{
+  height: 100%;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-size: 12pt;
+}
+.quill-editor .ql-editor{ height: 100%; color: #000; }
+
+/* =========================
+   Frases pane (direita)
+   ========================= */
+.frases-pane{
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid hsl(var(--border));
+  background: rgba(255,255,255,.55);
+  padding: 0;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.frases-pane.open{ padding: 14px; }
+.frases-area{ flex: 1; }
+
+/* =========================
+   Botões flutuantes (IA / SR)
+   ========================= */
+.btn-iahelp{
+  position:absolute;
+  right:12px;
+  bottom:-10px;
+  width:56px;
+  height:56px;
+  border:none;
+  background: var(--cinebaby-gradient);
+  padding:0;
+  cursor:pointer;
+  z-index:10;
+  margin: 40px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-strong);
+  transition: transform .15s ease, opacity .15s ease;
+}
+.btn-iahelp img{ width:56px; height:56px; }
+.btn-iahelp:hover{ transform: scale(1.03); }
+.btn-iahelp:disabled{
+  cursor: wait;
+  opacity: 0.9;
+}
+.btn-iahelp.is-loading{
+  pointer-events: none;
+}
+.btn-iahelp.is-loading::after{
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 18px;
+  border: 3px solid rgba(59, 130, 246, 0.28);
+  border-top-color: rgba(59, 130, 246, 1);
+  border-right-color: rgba(14, 165, 233, 0.9);
+  pointer-events: none;
+  animation: ia-halo-spin 0.95s linear infinite, ia-halo-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes ia-halo-spin{
+  to{ transform: rotate(360deg); }
+}
+
+@keyframes ia-halo-pulse{
+  0%, 100%{
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.15);
+  }
+  50%{
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.35);
+  }
+}
+
+.btn-sr{
+  position:absolute;
+  right:12px;
+  bottom:56px;
+  width:56px;
+  height:56px;
+  margin: 40px;
+  border:none;
+  background: transparent;
+  padding:0;
+  cursor:pointer;
+
+  opacity: .20;
+  pointer-events: none;
+
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  z-index: 11;
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+.btn-sr img{
+  width:56px;
+  height:56px;
+  display:block;
+  border-radius: 14px;
+}
+
+.btn-sr.has-sr{
+  opacity: 1;
+  pointer-events: auto;
+
+  background: #fff;
+  border-radius: 14px;
+
+  outline: 2px solid rgba(95,198,200,.85);
+  box-shadow: var(--shadow-strong);
+}
+.btn-sr.has-sr:hover{ transform: scale(1.03); }
+
+/* =========================
+   Seletor OCR/SR/Ambos
+   ========================= */
+.analise-selector{
+  position:absolute;
+  right: 12px;
+  bottom: 120px;
+  width: 56px;
+  height: 56px;
+  z-index: 12;
+  margin: 40px;
+}
+
+.analise-btn{
+  width: 56px;
+  height: 56px;
+  border: none;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0 8px;
+  display:flex;
+  flex-direction: column;
+  justify-content:center;
+  align-items:center;
+  gap: 2px;
+  outline: 2px solid rgba(15,23,42,.10);
+  outline-offset: 2px;
+  box-shadow: var(--shadow);
+}
+
+#analiseLabel{
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1;
+}
+.analise-caret{
+  font-size: 12px;
+  color: var(--ink);
+  opacity: .65;
+  line-height: 1;
+}
+
+.analise-menu{
+  position:absolute;
+  right: 0;
+  bottom: 62px;
+  display:none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  width: 185px;
+
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.10);
+  box-shadow: var(--shadow-strong);
+}
+.analise-menu.open{ display:flex; }
+
+.analise-item{
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(123,82,159,.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align:left;
+  transition: background .15s ease, border-color .15s ease;
+}
+.analise-item:hover{
+  background: rgba(95,198,200,.12);
+  border-color: rgba(95,198,200,.35);
+}
+
+.analise-btn.open{
+  outline: 2px solid rgba(95,198,200,.85);
+}
+
+/* =========================
+   Layout quando NomeFrases > 10 (mantém sua regra)
+   ========================= */
+body.layout-many-frases .left-pane{
+  width: 30%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  min-height: 0;
+}
+body.layout-many-frases .left-pane > .pane-title{ grid-column: 1 / -1; }
+body.layout-many-frases .left-pane > .left-section{ height: 100%; min-height: 0; }
+body.layout-many-frases .left-section{ min-height: 0; }
+body.layout-many-frases .left-pane > .left-section:nth-of-type(1){ grid-column: 1; grid-row: 2; }
+body.layout-many-frases .left-pane > .left-section:nth-of-type(2){ grid-column: 2; grid-row: 2; }
+body.layout-many-frases .left-pane .button-grid{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* ===== Tabsbar fixa no topo (sempre visível) ===== */
+:root{
+  --tabsbar-h: 56px; /* altura da barra de abas */
+}
+
+/* deixa espaço para a tabsbar fixa */
+body{
+  padding-top: var(--tabsbar-h);
+}
+
+/* Tabsbar fixa acima de tudo */
+.tabsbar{
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--tabsbar-h);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(15,23,42,.10);
+}
+
+/* O “palco” das abas ocupa a tela toda (sem precisar subtrair topbar) */
+.tab-stage{
+  position: relative;
+  height: calc(100vh - var(--tabsbar-h));
+  min-height: 0;
+}
+
+/* Painéis ocupam todo o tab-stage */
+.tab-panel{
+  position: absolute;
+  inset: 0;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition: opacity .15s ease;
+}
+
+.tab-panel.is-active{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Agora a topbar do Super Laudo (que está dentro do TAB 1)
+   fica “grudada” logo abaixo da tabsbar */
+.topbar{
+  top: var(--tabsbar-h);
+}
+
+/* =========================
+   PAGINA DE IMPRESSAO
+   ========================= */
+
+#print-status { opacity: .7; font-size: 13px; margin: 6px 0 10px; }
+
+#tab-print .print-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+#tab-print .print-box{
+  background: #f3f3f3;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3; /* ajuste se quiser */
+}
+
+.print-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin: 8px 0 10px;
+}
+
+.btn-print{
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #2f76ff, #1f5ddd);
+}
+
+.btn-print-icon{
+  margin-right: 6px;
+}
+
+.print-endpoint-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 0 0 12px 0;
+  flex-wrap: wrap;
+}
+
+.print-endpoint-wrap label{
+  font-size: 13px;
+  opacity: .85;
+  font-weight: 700;
+}
+
+.print-endpoint-wrap input{
+  width: min(780px, 100%);
+  min-width: 260px;
+  height: 36px;
+  border: 1px solid rgba(15,23,42,.15);
+  border-radius: 10px;
+  padding: 0 10px;
+  background: #fff;
+}
+
+.print-card{
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(15,23,42,.10);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(16,24,40,.08);
+}
+
+.print-card img{
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display:block;
+  background:#111;
+}
+
+.print-meta{
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.35;
+}

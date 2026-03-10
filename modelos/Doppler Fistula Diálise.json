@@ -1,0 +1,36 @@
+{
+  "NomeFrases": [
+    "Estenose anastomose",
+    "Estenose venosa",
+    "Fluxo reduzido",
+    "Fluxo elevado",
+    "Trombose parcial",
+    "Trombose completa",
+    "Pseudoaneurisma",
+    "Aneurisma venoso",
+    "Roubo arterial",
+    "Veia profunda",
+    "Veia tortuosa",
+    "Colateral venosa",
+    "Hematoma peri",
+    "Seroma peri",
+    "Fistula imatura"
+  ],
+  "PlavrasModificadoras": [
+    "direito",
+    "esquerdo",
+    "medindo",
+    "reduzido",
+    "aumentado",
+    "linfedema",
+    "radial",
+    "braquial",
+    "cefálica",
+    "basílica",
+    "anastomose",
+    "terminal",
+    "lateral"
+  ],
+  "RelatorioNormal": "<p><strong>ULTRASSONOGRAFIA DOPPLER DA FÍSTULA ARTERIOVENOSA PARA HEMODIÁLISE</strong></p><p><br></p><p><strong>INDICAÇÃO</strong>:</p><p>[Avaliação de maturação / redução de fluxo na hemodiálise / dificuldade de punção / Edema do membro superior].</p><p><br></p><p><strong>TÉCNICA</strong></p><p>Exame realizado com transdutor linear multifrequencial de alta resolução, utilizando modos B, Doppler colorido e Doppler espectral.</p><p>Foram realizadas manobras de compressão venosa e mensuração volumétrica do fluxo sanguíneo.</p><p><br></p><p><strong>DESCRIÇÃO</strong></p><p>Fístula arteriovenosa do tipo [rádio-cefálica / bráquio-cefálica / bráquio-basílica] em membro superior [direito/esquerdo].</p><p><br></p><p><strong>Artéria aferente </strong>([artéria radial / braquial])</p><p>Trajeto e calibre preservados.</p><p>Diâmetro pré-anastomótico medindo aproximadamente [<span style=\"color: rgb(0, 0, 0);\">medida</span>] mm.</p><p>Fluxo com padrão de baixa resistência, esperado para a presença de fístula arteriovenosa.</p><p>Velocidade sistólica de pico na artéria aferente: [medida] cm/s.</p><p>Não foram identificadas estenoses hemodinamicamente significativas.</p><p>Artéria distal à anastomose com fluxo [anterógrado / reverso], [sem / com] sinais sugestivos de síndrome do roubo.</p><p><br></p><p><strong>Anastomose arteriovenosa:</strong></p><p>Anastomose pérvia, sem evidência de trombose.</p><p>Diâmetro aproximado de [<span style=\"color: rgb(0, 0, 0);\">medida</span>] mm.</p><p>Velocidade sistólica de pico na anastomose: [<span style=\"color: rgb(0, 0, 0);\">medida</span>] cm/s.</p><p>Não foram identificados sinais de estenose significativa (ausência de aceleração focal marcada ou turbulência pós-estenótica).</p><p><br></p><p><strong>Veia de drenagem </strong>([veia cefálica / basílica])</p><p>Veia pérvia, de trajeto bem individualizado.</p><p>Diâmetro interno variando de [<span style=\"color: rgb(0, 0, 0);\">medida</span>] a [<span style=\"color: rgb(0, 0, 0);\">medida</span>] mm.</p><p>Profundidade em relação à pele variando de [<span style=\"color: rgb(0, 0, 0);\">medida</span>] a [<span style=\"color: rgb(0, 0, 0);\">medida</span>] mm.</p><p>Presença de segmento superficial e relativamente retilíneo com extensão aproximada de [<span style=\"color: rgb(0, 0, 0);\">medida</span>] cm, potencialmente adequado para canulação.</p><p>Paredes venosas de espessura habitual e compressíveis.</p><p>Ausência de trombos, dilatações aneurismáticas ou coleções peri-vasculares.</p><p><br></p><p><strong>Volume de fluxo</strong></p><p>Fluxo volumétrico estimado em [medida] mL/min, mensurado na [veia eferente / artéria aferente].</p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">CONCLUSÃO</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">:</span></p><p>Fístula arteriovenosa <strong>[rádio-cefálica / bráquio-cefálica / bráquio-basílica]</strong> em membro superior <strong>[direito/esquerdo]</strong>, pérvia.</p><p>Fluxo volumétrico estimado em <strong>[medida] mL/min</strong>.</p><p>Ausência de sinais ultrassonográficos de trombose ou estenose hemodinamicamente significativa.</p><p><br></p>",
+  "FrasesdoModelo": "<div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Abaixo estão as frases para realizar substituição de frases no laudo apenas quando o usuario solicitar:</b></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\"><br></b></div><div style=\"\"><font face=\"Arial\"><span style=\"font-size: 13.3333px;\">1. <b>Estenose anastomose</b>: Estreitamento focal na região da anastomose arteriovenosa com aceleração significativa das velocidades ao Doppler espectral e turbulência pós-estenótica, compatível com estenose hemodinamicamente significativa.\n2. <b>Estenose venosa</b>: Estreitamento focal na veia de drenagem com aumento localizado das velocidades ao Doppler espectral e redução do calibre venoso.\n3. <b>Fluxo reduzido</b>: Fluxo volumétrico estimado em aproximadamente [medida] mL/min, inferior ao esperado para adequada função da fístula arteriovenosa.\n4. <b>Fluxo</b> <b>elevado</b>: Fluxo volumétrico estimado em aproximadamente [medida] mL/min, superior ao habitual, podendo estar associado a hiperfluxo da fístula arteriovenosa.\n5. <b>Trombose</b> <b>parcial</b>: Material ecogênico intraluminal determinando redução parcial do lúmen vascular, com fluxo residual ao Doppler colorido.\n6. <b>Trombose</b> <b>completa</b>: Segmento vascular não compressível com material ecogênico intraluminal e ausência de fluxo ao Doppler colorido, compatível com trombose.\n7. <b>Pseudoaneurisma</b>: Dilatação sacular comunicante com o trajeto da fístula arteriovenosa apresentando fluxo turbulento ao Doppler colorido.\n8. Aneurisma venoso: Dilatação fusiforme da veia de drenagem com aumento do calibre venoso sem sinais de trombose intraluminal.\n9. <b>Roubo</b> <b>arterial</b>: Redução do fluxo arterial distal associada à inversão do fluxo na artéria distal à anastomose, achado compatível com síndrome do roubo.\n10. <b>Veia profunda</b>: Veia de drenagem localizada em plano profundo com distância aumentada em relação à pele dificultando a punção para hemodiálise.\n11. <b>Veia tortuosa</b>: Veia de drenagem com trajeto tortuoso podendo dificultar a canulação.\n12. <b>Colateral venosa</b>: Presença de veias colaterais de drenagem adjacentes ao trajeto principal da fístula arteriovenosa.\n13. <b>Hematoma peri</b>: Coleção hipoecogênica adjacente ao trajeto da fístula arteriovenosa compatível com hematoma peri-fístula.\n14. <b>Seroma peri:</b> Pequena coleção líquida peri-vascular sem sinais de fluxo ao Doppler colorido.\n15. <b>Fistula imatura</b>: Diâmetro venoso reduzido e fluxo volumétrico inferior ao esperado incompatível com critérios ultrassonográficos de maturação da fístula.</span></font></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\"><br></b></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Fim da lista de frases para substituições.</b></div>\n"
+}

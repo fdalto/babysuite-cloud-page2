@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Editor com Botões e Modelos</title>
+<link href="./favicon.ico" rel="icon" type="image/x-icon"/>
+<link href="./styles.css" rel="stylesheet"/>
+<!-- Quill (CDN) -->
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+</head>
+<body>
+<!-- Top Menu -->
+<div class="tabsbar">
+  <button class="tab-btn active" data-tab="tab-laudo">Super Laudo</button>
+  <button class="tab-btn" data-tab="tab-cinebaby">CineBaby</button>
+  <button class="tab-btn" data-tab="tab-calcs">Calculadoras</button>
+  <button class="tab-btn" data-tab="tab-print">Impressão</button>
+</div>
+<!-- TAB 1: seu site normal (Super Laudos) -->
+<div class="tab-stage">
+  <section id="tab-laudo" class="tab-panel is-active">
+  <!-- Top bar -->
+  <header class="topbar">
+  <div class="topbar-left">
+  <div class="brand">BabySuite - Relatórios Automatizados</div>
+  </div>
+  <div class="topbar-right">
+  <div class="modelos-wrap">
+  <button class="btn btn-modelos" id="btnModelos">Modelos</button>
+  <!-- Painel Modelos (fica "atrás" do meio do botão e cresce para a esquerda) -->
+  <div aria-hidden="true" class="painel-modelos-inline" id="painelModelos">
+  <div class="lista-modelos" id="listaModelos"></div>
+  </div>
+  </div>
+  <button class="btn btn-frases" id="btnFrases">Frases</button>
+  <button class="btn btn-json" id="btnJSON">JSON</button>
+  </div>
+  </header>
+
+  <!-- Conteúdo principal -->
+  <main class="main">
+  <!-- Coluna esquerda -->
+  <section class="left-pane" id="leftPane">
+  <div class="pane-title">Botões</div>
+  <div class="left-section">
+  <div class="section-header">NomeFrases</div>
+  <div class="button-grid" id="botoes_nome_frases"></div>
+  </div>
+  <div class="left-section bottom">
+  <div class="section-header">Palavras Modificadoras</div>
+  <div class="button-grid" id="botoes_palavras_modificadoras"></div>
+  </div>
+  </section>
+  <!-- Splitter (arrastável) -->
+  <div class="splitter" id="splitter" title="Arraste para ajustar"></div>
+  <!-- Coluna direita -->
+  <section class="right-pane" id="rightPane">
+  <!-- (2) Editor -->
+  <div class="right-top">
+  <div class="pane-title">Relatório Ultrassonográfico</div>
+  <div class="quill-toolbar" id="quillToolbar"></div>
+  <div class="quill-editor" id="editorRelatorio"></div>
+  </div>
+  <!-- Divider horizontal -->
+  <div class="h-split"></div>
+  <!-- (3) Prompt -->
+  <div class="right-bottom">
+  <div class="pane-title">PROMPT para IA-Baby</div>
+  <textarea class="prompt-area" id="campoPrompt" spellcheck="false"></textarea>
+  <!-- Seletor de análise (fica acima do botão do report/SR) -->
+  <div class="analise-selector" id="analiseSelector">
+    <button class="analise-btn" id="analiseBtn" title="Tipo de análise">
+      <span id="analiseLabel">Ambos</span>
+      <span class="analise-caret">▴</span>
+    </button>
+
+    <div class="analise-menu" id="analiseMenu" aria-hidden="true">
+      <button class="analise-item" data-choice="OCR">OCR</button>
+      <button class="analise-item" data-choice="SR">SR</button>
+      <button class="analise-item" data-choice="Ambos">Ambos</button>
+    </div>
+  </div>
+  <!-- Botoes na area PROMPT -->
+  <button class="btn-sr" id="SRButton" title="Mostrar relatório SR" aria-disabled="true">
+    <img alt="SR" src="./SRreport.svg" />
+  </button>
+  <button class="btn-iahelp" id="IAButton"><img alt="IA Help" src="./IAhelp.svg" style="width:48px;height:48px;display:block;"/></button></div>
+  </section>
+  <!-- Splitter 2 (arrastável) -->
+  <div class="splitter splitter-right" hidden="" id="splitter2" title="Arraste para ajustar"></div>
+  <!-- (4) Frases do Modelo -->
+  <section aria-hidden="true" class="frases-pane" id="frasesPane">
+  <div class="pane-title">(4) Frases do Modelo</div>
+  <div class="editable-area frases-area" contenteditable="true" id="campoFrases" spellcheck="false"></div>
+  </section>
+  </main>
+  <!-- ... seu layout atual inteiro ... -->
+  </section>
+ <!-- TAB 2: CineBaby (iframe) -->
+  <section id="tab-cinebaby" class="tab-panel">
+    <iframe
+      class="tool-iframe"
+      src="https://cinebaby.site/clinica/dashboard"
+      title="CineBaby Dashboard"
+      loading="eager"
+      referrerpolicy="no-referrer-when-downgrade"
+      allow="camera; microphone; autoplay; clipboard-read; clipboard-write"
+    ></iframe>
+  </section>
+
+  <!-- TAB 3: Calculadoras (iframe) -->
+  <section id="tab-calcs" class="tab-panel">
+    <iframe
+      class="tool-iframe"
+      src="https://www.babycalc.com.br"
+      title="Calculadoras"
+      loading="eager"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </section>
+
+  <!-- TAB 4: Impressão (dummy) -->
+  <section id="tab-print" class="tab-panel">
+    <div class="print-wrap">
+      <h2 class="print-title">Impressão</h2>
+      <div id="print-status">Nenhuma imagem recebida ainda.</div>
+      <div class="print-actions">
+        <button class="btn" id="btnSendPrintImages" type="button">Enviar imagens</button>
+        <button class="btn btn-print" id="btnPrintLayout" type="button">
+          <span class="btn-print-icon" aria-hidden="true">🖨</span>
+          Imprimir
+        </button>
+        <button class="btn btn-fechar" id="btnClearPrintImages" type="button">Limpar</button>
+      </div>
+      <div class="print-endpoint-wrap">
+        <label for="printUploadEndpoint">Endpoint de envio (opcional):</label>
+        <input id="printUploadEndpoint" type="url" placeholder="https://seu-endpoint/upload" />
+      </div>
+
+      <div class="print-grid" id="printGrid"></div>
+    </div>
+  </section>
+</div>
+<script src="./script_main.js"></script>
+<script src="./script_IA.js"></script>
+<script src="./bridge_client.js"></script>
+<script>
+  (function(){
+    const btns = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+
+    function activate(tabId){
+      // ativa botão
+      btns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+
+      // ativa painel (sem display:none)
+      panels.forEach(p => p.classList.toggle('is-active', p.id === tabId));
+    }
+
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => activate(btn.dataset.tab));
+    });
+
+    // padrão
+    activate('tab-laudo');
+  })();
+</script>
+</body>
+</html>

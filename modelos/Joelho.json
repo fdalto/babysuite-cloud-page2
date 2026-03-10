@@ -1,0 +1,20 @@
+{
+  "NomeFrases": [
+    "derrame",
+    "sinovite",
+    "tendinopatia patelar",
+    "ruptura parcial patelar",
+    "cisto baker"
+  ],
+  "PlavrasModificadoras": [
+    "pequeno",
+    "medio",
+    "grande",
+    "enorme",
+    "direito",
+    "esquerdo",
+    "super"
+  ],
+  "RelatorioNormal": "<p><br></p><p>‌<strong style=\"color: inherit;\">ULTRASSONOGRAFIA DO JOELHO ESQUERDO DIREITO</strong></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">ANÁLISE:</span></p><p><span style=\"color: inherit;\">Pele e tecido subcutâneo preservados.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Superfícies ósseas regulares ao método.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Tendões patelar e quadricipital com espessura e ecogenicidade preservadas.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Tendões da pata anserina com espessura e ecogenicidade preservadas.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Trato iliotibial sem alterações aparentes.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Complexos ligamentares colaterais (medial) sem anormalidades.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Complexos ligamentares colaterais (lateral) sem anormalidades.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Gordura de Hoffa com ecogenicidade preservada.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Ausência de derrame articular.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Fossa poplítea sem particularidades.</span></p><p><strong>‌</strong></p><p><span style=\"color: inherit;\">Vasos poplíteos sem evidências de trombose.</span></p><p><strong>‌</strong></p><p><strong>‌</strong></p><p><strong style=\"color: inherit;\">OPINIÃO:</strong></p><p><strong style=\"color: inherit;\">Exame de joelho sem alterações significativas.</strong></p>",
+  "FrasesdoModelo": "\n<div style=\"font-family: Arial; font-size: 10pt;\">\n  <b>Abaixo estão as frases para realizar substituição de frases no laudo apenas quando o usuario solicitar:</b></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\"><br></span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\">1. derrame: Distensão líquida do recesso suprapatelar, compatível com derrame articular.</span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\"><br></span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\">2. sinovite: Espessamento sinovial com aumento da vascularização ao Doppler, compatível com sinovite.</span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\"><br></span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\">3. tendinopatia patelar: Espessamento e hipoecogenicidade do tendão patelar na sua origem insercional, com perda parcial do padrão fibrilar habitual, compatível com tendinopatia.</span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\"><br></span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\">4. ruptura parcial patelar: Descontinuidade focal das fibras do tendão patelar, medindo cerca de [medida] cm, compatível com ruptura parcial.</span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\"><br></span></div><div style=\"font-family: Arial; font-size: 10pt;\"><span style=\"font-size: 10pt;\">5. cisto baker: Formação cística anecoica na região poplítea medial, entre o tendão do semimembranoso e a cabeça medial do gastrocnêmio, compatível com cisto de Baker.</span><span style=\"font-size: 10pt;\"><br></span>\n  <b>Fim da lista de frases para substituições.</b>\n</div>\n"
+}

@@ -1,0 +1,18 @@
+{
+  "NomeFrases": [
+    "cisto",
+    "nódulo"
+  ],
+  "PlavrasModificadoras": [
+    "direita",
+    "esquerda",
+    "QSL",
+    "QIM",
+    "QIL",
+    "ovalado",
+    "com sombra acústica",
+    "com calcificações"
+  ],
+  "RelatorioNormal": "<p class=\"ql-align-center\"><strong>ULTRASSONOGRAFIA DAS MAMAS</strong></p><p><br></p><p><strong style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">INDICAÇÃO:</strong></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Rastreamento.</span></p><p><br></p><p><strong style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">DESCRIÇÃO:</strong></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Pele e tecido celular subcutâneo de aspecto preservado.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Tecido fibroglandular com ecotextura habitual.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Não há evidências nódulos sólidos ao método.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Ausência de lesões císticas.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Ausência de ectasias ductais.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Prolongamentos axilares sem particularidades.</span></p><p><br></p><p><strong style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">ANÁLISE COMPARATIVA:</strong></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Exames anteriores não disponíveis para análise comparativa.</span></p><p><br></p><p><strong style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">OPINIÃO:</strong></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Estudo ultrassonográfico normal.</span></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">Classificação: BI-RADS 1.</span></p><p><br></p><p><span style=\"background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);\">A critério clínico, sugere-se controle de rotina de acordo com o indicado para a faixa etária.</span></p><p><br></p>",
+  "FrasesdoModelo": "<div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Abaixo estão as frases para realizar substituição de frases no laudo apenas quando o usuario solicitar:</b><font face=\"Arial\"><span style=\"font-size: 13.3333px;\">\n\n1. cisto: Cisto de paredes finas e conteúdo anecoico, localizado às 3 horas da mama direita, medindo 10,0 cm.\n</span><span style=\"font-size: 10pt;\"><br></span></font></div><div style=\"\"><font face=\"Arial\"><span style=\"font-size: 10pt;\">2. nódulo: </span><span style=\"font-size: 13.3333px;\">Nódulo hipoecogênico, oval, circunscrito, com orientação paralela à pele, sem sombra acústica posterior, medindo 1,0 x 1,0 x 1,0 cm, localizado às 2 horas da mama [direita/esquerda], distando 1,0 cm da pele e 1,0 cm do complexo areolopapilar.</span><span style=\"font-size: 10pt;\">\n  </span></font></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Fim da lista de frases para substituições.</b><font face=\"Arial\"><span style=\"font-size: 10pt;\">\n</span></font></div>\n"
+}

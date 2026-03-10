@@ -1,0 +1,31 @@
+{
+  "NomeFrases": [
+    "Insuficiencia",
+    "Insuficiencia segmentar",
+    "Refluxo JSF",
+    "refluxo",
+    "Perfurante refluxo",
+    "Varizes",
+    "Trombose",
+    "Trombose parcial",
+    "Recanalizacao",
+    "Dilatacao"
+  ],
+  "PlavrasModificadoras": [
+    "Direito",
+    "Esquerdo",
+    "Magna",
+    "Parva",
+    "Femoral",
+    "JSF",
+    "Perfurante",
+    "Terço",
+    "proximal",
+    "médio",
+    "distal",
+    "coxa",
+    "perna"
+  ],
+  "RelatorioNormal": "<p><strong>ULTRASSONOGRAFIA DOPPLER VENOSA DO MEMBRO INFERIOR [DIREITO/ESQUERDO]</strong></p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">TÉCNICA</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">:&nbsp;</span></p><p>Exame realizado com transdutor linear de alta resolução (7,5–16 MHz), utilizando modos B, Doppler colorido e Doppler espectral.</p><p>Avaliação realizada com o paciente em posição ortostática e em decúbito, com manobras de compressão venosa e avaliação de refluxo venoso.</p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">SISTEMA VENOSO PROFUNDO</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">:</span></p><p>Veia femoral comum, veia femoral e veia femoral profunda compressíveis, pérvias, com fluxo fásico ao Doppler e sem evidência de trombose.</p><p>Veia poplítea compressível, pérvia, com fluxo fásico ao Doppler e sem evidência de trombose.</p><p>Veias tibiais posteriores e anteriores pérvias e compressíveis.</p><p>Veias gastrocnêmicas pérvias.</p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">SISTEMA VENOSO SUPERFICIAL</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">:</span></p><p>Junção safenofemoral pérvia e sem refluxo ao estudo Doppler.</p><p>Diâmetro da veia safena magna na junção: <strong>[medida] mm</strong>.</p><p>Veia safena magna pérvia em todo o seu trajeto, sem refluxo ao estudo Doppler.</p><p>Diâmetros da safena magna:</p><p>\tCoxa: <strong>[medida] mm</strong></p><p>\t<span style=\"background-color: transparent; color: rgb(0, 0, 0);\">Perna: </span><strong>[medida] mm</strong></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">Junção safeno-poplítea pérvia e sem refluxo.</span></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">Veia safena parva pérvia, sem refluxo.</span></p><p><br></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">PERFURANTES:</span></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">Ausência de perfurantes incompetentes.</span></p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">CONCLUSÃO</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">:</span></p><p>Sistema venoso profundo sem evidência de trombose.</p><p>Sistema venoso superficial sem sinais de insuficiência venosa.</p><p>Não foram identificadas varizes significativas.</p><p><br></p>",
+  "FrasesdoModelo": "<div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Abaixo estão as frases para realizar substituição de frases no laudo apenas quando o usuario solicitar:</b></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\"><br></b></div><div style=\"\"><font face=\"Arial\"><span style=\"font-size: 13.3333px;\">1. <b>Insuficiencia</b>: Refluxo venoso significativo na veia [safena magna/parva] ao estudo Doppler, com duração superior a 0,5 s após manobra de compressão distal, associado a dilatação venosa com diâmetro aproximado de [medida] mm.\n2. <b>Insuficiencia segmentar</b>: Refluxo venoso segmentar na veia [safena magna/parva] identificado no segmento [coxa/perna], distando [medida] cm da prega poplítea, com duração superior a 0,5 s ao estudo Doppler.\n3. <b>Refluxo JSF</b>: Refluxo venoso na junção safenofemoral com propagação para a veia safena magna.\n4. <b>refluxo</b>: Identificado refluxo venoso, às manobras dinâmicas, na veia safena [magna/parva] ao estudo Doppler, com duração superior a 0,5 s, no terço médio da [perna/coxa].\n5. <b>Perfurante refluxo</b>: Veia perfurante incompetente identificada no [localizacao], apresentando refluxo venoso com duração superior a 0,5 s e diâmetro aproximado de [medida] mm.\n7. <b>Varizes</b>: Presença de dilatações varicosas tortuosas associadas ao trajeto da veia safena magna.\n8. <b>Trombose</b>: Veia [segmento] não compressível com material ecogênico intraluminal e ausência de fluxo ao Doppler colorido, achados compatíveis com trombose venosa.</span></font></div><div style=\"\"><font face=\"Arial\"><span style=\"font-size: 13.3333px;\">9. <b>Trombose parcial</b>: Material ecogênico intraluminal determinando redução parcial do lúmen venoso com fluxo residual ao Doppler.\n10. <b>Recanalizacao</b>: Segmento venoso com irregularidade parietal e fluxo de baixa velocidade ao Doppler, sugerindo recanalização de trombose venosa prévia.\n11. <b>Dilatacao</b>: Veia [safena magna] dilatada com diâmetro aproximado de [medida] mm.\n</span></font></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\"><br></b></div><div style=\"\"><b style=\"font-family: Arial; font-size: 10pt;\">Fim da lista de frases para substituições.</b></div>\n"
+}

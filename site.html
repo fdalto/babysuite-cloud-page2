@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BabySuite Dicom Bridge | VFDalto</title>
+  <meta name="description" content="Site institucional do BabySuite Dicom Bridge para submissao na Microsoft Store.">
+  <style>
+    :root {
+      --bg: #f5f8ff;
+      --ink: #10233d;
+      --muted: #4e6280;
+      --brand: #0b5fff;
+      --brand-dark: #003fb5;
+      --card: #ffffff;
+      --line: #d6e1f3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, #e4edff 0%, transparent 35%),
+        linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      background: #dce9ff;
+      color: #15408a;
+      border: 1px solid #c1d6ff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1;
+    }
+    .lead {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.55;
+      max-width: 60ch;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-light {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+    .poster {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 14px 30px rgba(13, 45, 107, 0.12);
+      padding: 10px;
+    }
+    .poster img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      display: block;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    footer {
+      margin-top: 30px;
+      color: #5d6f8a;
+      font-size: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <span class="badge">VFDalto Tecnologia em Saude</span>
+        <h1>BabySuite Dicom Bridge</h1>
+        <p class="lead">
+          Aplicativo para integracao de imagens e fluxos DICOM, com foco em produtividade
+          clinica, padronizacao de laudos e operacao segura em ambiente hospitalar.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="support_site.html">Acessar Suporte</a>
+          <a class="btn btn-light" href="downloads/v1.0.0/VFDalto.BabySuiteDicomBridge_1.0.0.0_x64__gn1em06kxcxyy.msix">Download do Instalador</a>
+        </div>
+      </div>
+      <div class="poster">
+        <img src="babysuite_poster_store_720x1080.png" alt="Poster oficial BabySuite para Microsoft Store">
+      </div>
+    </section>
+
+    <section class="cards" aria-label="Informacoes do produto">
+      <article class="card">
+        <h2>Proposito</h2>
+        <p>Conectar o ambiente de diagnostico por imagem a uma experiencia de uso simples e estavel para equipes medicas.</p>
+      </article>
+      <article class="card">
+        <h2>Publico Alvo</h2>
+        <p>Clinicas, hospitais e profissionais que precisam de distribuicao padronizada do aplicativo em Windows 10/11.</p>
+      </article>
+      <article class="card">
+        <h2>Conformidade</h2>
+        <p>Pagina institucional para submissao na Microsoft Store, incluindo acesso a suporte e instalador oficial.</p>
+      </article>
+    </section>
+
+    <footer>
+      <strong>Empresa:</strong> VFDalto • <strong>Produto:</strong> BabySuite Dicom Bridge •
+      <a href="babysuite_privacy_policy.html">Politica de Privacidade</a>
+    </footer>
+  </main>
+</body>
+</html>
