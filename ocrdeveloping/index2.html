@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BabySuite OCR Developing</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__title">BabySuite OCR Developing</div>
+    <div class="topbar__status" id="statusLine">Aguardando imagens via postMessage...</div>
+  </header>
+
+  <main class="content">
+    <section class="panel">
+      <div class="panel__header">
+        <h1>Pipeline Experimental (até ROIs)</h1>
+        <button id="btnClear" type="button">Limpar tabela</button>
+      </div>
+      <p class="panel__subtitle">
+        Colunas: imagem original, regiões candidatas (ROI) e placeholder para OCR futuro.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Imagem original</th>
+              <th>ROIs detectadas</th>
+              <th>Resultado OCR (futuro)</th>
+              <th>Metadados</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
