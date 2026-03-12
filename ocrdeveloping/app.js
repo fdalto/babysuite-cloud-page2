@@ -102,11 +102,35 @@
       return sat <= 26 && lum >= 60 && lum <= 210;
     };
 
+    const rgbToHsv = (r, g, b) => {
+      const rn = r / 255;
+      const gn = g / 255;
+      const bn = b / 255;
+      const maxc = Math.max(rn, gn, bn);
+      const minc = Math.min(rn, gn, bn);
+      const d = maxc - minc;
+      let h = 0;
+
+      if (d > 0) {
+        if (maxc === rn) h = ((gn - bn) / d) % 6;
+        else if (maxc === gn) h = ((bn - rn) / d) + 2;
+        else h = ((rn - gn) / d) + 4;
+        h *= 60;
+        if (h < 0) h += 360;
+      }
+
+      const s = maxc === 0 ? 0 : d / maxc;
+      const v = maxc;
+      return { h, s, v };
+    };
+
     const isOrangeOrGreenText = (r, g, b, a) => {
-      if (a < 50) return false;
-      const isGreen = g >= 90 && g > r * 1.1 && g > b * 1.2;
-      const isOrange = r >= 140 && g >= 70 && g <= 210 && b <= 135 && r > g * 1.05 && (r - b) >= 35;
-      return isGreen || isOrange;
+      if (a < 20) return false;
+      const { h, s, v } = rgbToHsv(r, g, b);
+      const isGreen = h >= 65 && h <= 170 && s >= 0.2 && v >= 0.2;
+      const isOrange = h >= 12 && h <= 55 && s >= 0.22 && v >= 0.25;
+      const nearOrange = r >= 110 && g >= 45 && b <= 130 && r > g && g > b;
+      return isGreen || isOrange || nearOrange;
     };
 
     for (let y = 1; y < height - 1; y += 1) {
@@ -139,6 +163,25 @@
         );
 
         if (contrast >= 18) borderMask[i] = 1;
+      }
+    }
+
+    // Grows the color mask by 1px to recover anti-aliased/translucent characters.
+    const grownColorMask = colorTextMask.slice();
+    for (let y = 1; y < height - 1; y += 1) {
+      for (let x = 1; x < width - 1; x += 1) {
+        const i = idxOf(x, y);
+        if (colorTextMask[i]) continue;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            if (!dx && !dy) continue;
+            if (colorTextMask[idxOf(x + dx, y + dy)]) {
+              grownColorMask[i] = 1;
+              dx = 2;
+              break;
+            }
+          }
+        }
       }
     }
 
@@ -222,7 +265,7 @@
           for (let x = ix0; x <= ix1; x += 1) {
             const i = idxOf(x, y);
             innerCount += 1;
-            if (colorTextMask[i]) textCount += 1;
+            if (grownColorMask[i]) textCount += 1;
             if (borderMask[i]) innerBorderCount += 1;
           }
         }
@@ -250,7 +293,7 @@
     for (let sy = 1; sy < height - 1; sy += 1) {
       for (let sx = 1; sx < width - 1; sx += 1) {
         const seed = idxOf(sx, sy);
-        if (!colorTextMask[seed] || visitedColor[seed]) continue;
+        if (!grownColorMask[seed] || visitedColor[seed]) continue;
 
         const q = [[sx, sy]];
         visitedColor[seed] = 1;
@@ -273,7 +316,7 @@
             const ny = cy + dy;
             if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
             const ni = idxOf(nx, ny);
-            if (visitedColor[ni] || !colorTextMask[ni]) continue;
+            if (visitedColor[ni] || !grownColorMask[ni]) continue;
             visitedColor[ni] = 1;
             q.push([nx, ny]);
           }
@@ -281,7 +324,7 @@
 
         const textW = maxX - minX + 1;
         const textH = maxY - minY + 1;
-        if (count < 25 || textW < 18 || textH < 8) continue;
+        if (count < 12 || textW < 12 || textH < 6) continue;
 
         const marginX = Math.round(Math.max(8, textW * 0.25));
         const marginY = Math.round(Math.max(6, textH * 0.45));
@@ -303,7 +346,7 @@
         for (let y = y0; y <= y1; y += 1) {
           for (let x = x0; x <= x1; x += 1) {
             const i = idxOf(x, y);
-            if (colorTextMask[i]) innerText += 1;
+            if (grownColorMask[i]) innerText += 1;
             if (borderMask[i]) innerBorder += 1;
             n += 1;
           }
@@ -311,7 +354,7 @@
 
         const textDensity = innerText / Math.max(1, n);
         const borderDensity = innerBorder / Math.max(1, n);
-        if (textDensity < 0.007) continue;
+        if (textDensity < 0.0025) continue;
 
         const score = (textDensity * 2400) + (borderDensity * 220) + (Math.log10(area + 1) * 5);
         rawCandidates.push({
