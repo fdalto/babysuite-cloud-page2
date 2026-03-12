@@ -86,8 +86,9 @@
   function detectCandidateRois(ctx, width, height) {
     const pixels = ctx.getImageData(0, 0, width, height).data;
     const borderMask = new Uint8Array(width * height);
-    const textMask = new Uint8Array(width * height);
-    const visited = new Uint8Array(width * height);
+    const colorTextMask = new Uint8Array(width * height);
+    const visitedBorder = new Uint8Array(width * height);
+    const visitedColor = new Uint8Array(width * height);
     const rawCandidates = [];
 
     const idxOf = (x, y) => (y * width) + x;
@@ -101,11 +102,11 @@
       return sat <= 26 && lum >= 60 && lum <= 210;
     };
 
-    const isYellowOrGreenText = (r, g, b, a) => {
+    const isOrangeOrGreenText = (r, g, b, a) => {
       if (a < 50) return false;
       const isGreen = g >= 90 && g > r * 1.1 && g > b * 1.2;
-      const isYellow = r >= 120 && g >= 120 && b <= 150 && (r + g) > (b * 2.1);
-      return isGreen || isYellow;
+      const isOrange = r >= 140 && g >= 70 && g <= 210 && b <= 135 && r > g * 1.05 && (r - b) >= 35;
+      return isGreen || isOrange;
     };
 
     for (let y = 1; y < height - 1; y += 1) {
@@ -117,7 +118,7 @@
         const a = pixels[p + 3];
         const i = idxOf(x, y);
 
-        if (isYellowOrGreenText(r, g, b, a)) textMask[i] = 1;
+        if (isOrangeOrGreenText(r, g, b, a)) colorTextMask[i] = 1;
         if (!isGrayLike(r, g, b) || a < 80) continue;
 
         const pL = pxOf(x - 1, y);
@@ -163,10 +164,10 @@
     for (let sy = 1; sy < height - 1; sy += 1) {
       for (let sx = 1; sx < width - 1; sx += 1) {
         const seed = idxOf(sx, sy);
-        if (!borderMask[seed] || visited[seed]) continue;
+        if (!borderMask[seed] || visitedBorder[seed]) continue;
 
         const q = [[sx, sy]];
-        visited[seed] = 1;
+        visitedBorder[seed] = 1;
         let minX = sx;
         let minY = sy;
         let maxX = sx;
@@ -186,8 +187,8 @@
             const ny = cy + dy;
             if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
             const ni = idxOf(nx, ny);
-            if (visited[ni] || !borderMask[ni]) continue;
-            visited[ni] = 1;
+            if (visitedBorder[ni] || !borderMask[ni]) continue;
+            visitedBorder[ni] = 1;
             q.push([nx, ny]);
           }
         }
@@ -221,7 +222,7 @@
           for (let x = ix0; x <= ix1; x += 1) {
             const i = idxOf(x, y);
             innerCount += 1;
-            if (textMask[i]) textCount += 1;
+            if (colorTextMask[i]) textCount += 1;
             if (borderMask[i]) innerBorderCount += 1;
           }
         }
@@ -241,6 +242,87 @@
           area,
           textDensity,
           score,
+          mechanism: "box",
+        });
+      }
+    }
+
+    for (let sy = 1; sy < height - 1; sy += 1) {
+      for (let sx = 1; sx < width - 1; sx += 1) {
+        const seed = idxOf(sx, sy);
+        if (!colorTextMask[seed] || visitedColor[seed]) continue;
+
+        const q = [[sx, sy]];
+        visitedColor[seed] = 1;
+        let minX = sx;
+        let minY = sy;
+        let maxX = sx;
+        let maxY = sy;
+        let count = 0;
+
+        while (q.length) {
+          const [cx, cy] = q.shift();
+          count += 1;
+          minX = Math.min(minX, cx);
+          minY = Math.min(minY, cy);
+          maxX = Math.max(maxX, cx);
+          maxY = Math.max(maxY, cy);
+
+          for (const [dx, dy] of neighbors8) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
+            const ni = idxOf(nx, ny);
+            if (visitedColor[ni] || !colorTextMask[ni]) continue;
+            visitedColor[ni] = 1;
+            q.push([nx, ny]);
+          }
+        }
+
+        const textW = maxX - minX + 1;
+        const textH = maxY - minY + 1;
+        if (count < 25 || textW < 18 || textH < 8) continue;
+
+        const marginX = Math.round(Math.max(8, textW * 0.25));
+        const marginY = Math.round(Math.max(6, textH * 0.45));
+        const x0 = Math.max(0, minX - marginX);
+        const y0 = Math.max(0, minY - marginY);
+        const x1 = Math.min(width - 1, maxX + marginX);
+        const y1 = Math.min(height - 1, maxY + marginY);
+        const w = x1 - x0 + 1;
+        const h = y1 - y0 + 1;
+        const area = w * h;
+        if (w < 60 || h < 16 || area < 2200) continue;
+
+        const ar = w / Math.max(1, h);
+        if (ar < 1.6 || ar > 28) continue;
+
+        let innerText = 0;
+        let innerBorder = 0;
+        let n = 0;
+        for (let y = y0; y <= y1; y += 1) {
+          for (let x = x0; x <= x1; x += 1) {
+            const i = idxOf(x, y);
+            if (colorTextMask[i]) innerText += 1;
+            if (borderMask[i]) innerBorder += 1;
+            n += 1;
+          }
+        }
+
+        const textDensity = innerText / Math.max(1, n);
+        const borderDensity = innerBorder / Math.max(1, n);
+        if (textDensity < 0.007) continue;
+
+        const score = (textDensity * 2400) + (borderDensity * 220) + (Math.log10(area + 1) * 5);
+        rawCandidates.push({
+          x: x0,
+          y: y0,
+          w,
+          h,
+          area,
+          textDensity,
+          score,
+          mechanism: "color",
         });
       }
     }
@@ -263,7 +345,7 @@
     for (const candidate of rawCandidates) {
       const overlaps = selected.some((s) => iou(candidate, s) > 0.5);
       if (!overlaps) selected.push(candidate);
-      if (selected.length >= 10) break;
+      if (selected.length >= 14) break;
     }
 
     return selected;
@@ -285,7 +367,8 @@
 
     const cap = document.createElement("figcaption");
     const textDensity = typeof roi.textDensity === "number" ? ` • txt:${(roi.textDensity * 100).toFixed(1)}%` : "";
-    cap.textContent = `#${idx + 1} • x:${roi.x} y:${roi.y} w:${roi.w} h:${roi.h}${textDensity}`;
+    const mech = roi.mechanism ? ` • ${roi.mechanism}` : "";
+    cap.textContent = `#${idx + 1}${mech} • x:${roi.x} y:${roi.y} w:${roi.w} h:${roi.h}${textDensity}`;
 
     fig.appendChild(img);
     fig.appendChild(cap);
