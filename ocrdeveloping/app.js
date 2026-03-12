@@ -88,7 +88,7 @@
     const borderMask = new Uint8Array(width * height);
     const colorTextMask = new Uint8Array(width * height);
     const visitedBorder = new Uint8Array(width * height);
-    const visitedColor = new Uint8Array(width * height);
+    const visitedColorRaw = new Uint8Array(width * height);
     const rawCandidates = [];
 
     const idxOf = (x, y) => (y * width) + x;
@@ -127,10 +127,11 @@
     const isOrangeOrGreenText = (r, g, b, a) => {
       if (a < 20) return false;
       const { h, s, v } = rgbToHsv(r, g, b);
-      const isGreen = h >= 65 && h <= 170 && s >= 0.2 && v >= 0.2;
-      const isOrange = h >= 12 && h <= 55 && s >= 0.22 && v >= 0.25;
+      const isGreen = h >= 70 && h <= 170 && s >= 0.2 && v >= 0.2;
+      const isYellow = h >= 35 && h <= 75 && s >= 0.22 && v >= 0.2;
+      const isOrange = h >= 15 && h <= 45 && s >= 0.22 && v >= 0.22;
       const nearOrange = r >= 110 && g >= 45 && b <= 130 && r > g && g > b;
-      return isGreen || isOrange || nearOrange;
+      return isGreen || isYellow || isOrange || nearOrange;
     };
 
     for (let y = 1; y < height - 1; y += 1) {
@@ -189,6 +190,127 @@
       [1, 0], [-1, 0], [0, 1], [0, -1],
       [1, 1], [1, -1], [-1, 1], [-1, -1],
     ];
+
+    const dilateMask = (mask, rx, ry) => {
+      const tmp = new Uint8Array(width * height);
+      const out = new Uint8Array(width * height);
+
+      for (let y = 0; y < height; y += 1) {
+        const rowOffset = y * width;
+        for (let x = 0; x < width; x += 1) {
+          if (!mask[rowOffset + x]) continue;
+          const x0 = Math.max(0, x - rx);
+          const x1 = Math.min(width - 1, x + rx);
+          for (let tx = x0; tx <= x1; tx += 1) tmp[rowOffset + tx] = 1;
+        }
+      }
+
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          if (!tmp[idxOf(x, y)]) continue;
+          const y0 = Math.max(0, y - ry);
+          const y1 = Math.min(height - 1, y + ry);
+          for (let ty = y0; ty <= y1; ty += 1) out[idxOf(x, ty)] = 1;
+        }
+      }
+
+      return out;
+    };
+
+    const connectedComponentsBoxes = (mask, visited, minPixels = 1) => {
+      const boxes = [];
+      for (let sy = 1; sy < height - 1; sy += 1) {
+        for (let sx = 1; sx < width - 1; sx += 1) {
+          const seed = idxOf(sx, sy);
+          if (!mask[seed] || visited[seed]) continue;
+
+          const q = [[sx, sy]];
+          visited[seed] = 1;
+          let minX = sx;
+          let minY = sy;
+          let maxX = sx;
+          let maxY = sy;
+          let count = 0;
+
+          for (let head = 0; head < q.length; head += 1) {
+            const [cx, cy] = q[head];
+            count += 1;
+            minX = Math.min(minX, cx);
+            minY = Math.min(minY, cy);
+            maxX = Math.max(maxX, cx);
+            maxY = Math.max(maxY, cy);
+
+            for (const [dx, dy] of neighbors8) {
+              const nx = cx + dx;
+              const ny = cy + dy;
+              if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
+              const ni = idxOf(nx, ny);
+              if (visited[ni] || !mask[ni]) continue;
+              visited[ni] = 1;
+              q.push([nx, ny]);
+            }
+          }
+
+          if (count < minPixels) continue;
+          boxes.push({
+            minX,
+            minY,
+            maxX,
+            maxY,
+            w: maxX - minX + 1,
+            h: maxY - minY + 1,
+            area: (maxX - minX + 1) * (maxY - minY + 1),
+            count,
+          });
+        }
+      }
+      return boxes;
+    };
+
+    const mergeCloseBoxes = (boxes, gapLimit, overlapRatioMin) => {
+      const merged = boxes.map((b) => ({ ...b }));
+      if (merged.length < 2) return merged;
+
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (let i = 0; i < merged.length; i += 1) {
+          let mergedThisRound = false;
+          for (let j = i + 1; j < merged.length; j += 1) {
+            const a = merged[i];
+            const b = merged[j];
+
+            const overlapY = Math.max(0, Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY) + 1);
+            const overlapRatio = overlapY / Math.max(1, Math.min(a.h, b.h));
+
+            let gapX = 0;
+            if (a.maxX < b.minX) gapX = b.minX - a.maxX;
+            else if (b.maxX < a.minX) gapX = a.minX - b.maxX;
+
+            if (gapX <= gapLimit && overlapRatio >= overlapRatioMin) {
+              const n = {
+                minX: Math.min(a.minX, b.minX),
+                minY: Math.min(a.minY, b.minY),
+                maxX: Math.max(a.maxX, b.maxX),
+                maxY: Math.max(a.maxY, b.maxY),
+              };
+              n.w = n.maxX - n.minX + 1;
+              n.h = n.maxY - n.minY + 1;
+              n.area = n.w * n.h;
+              n.count = (a.count || 0) + (b.count || 0);
+              merged[i] = n;
+              merged.splice(j, 1);
+              changed = true;
+              mergedThisRound = true;
+              break;
+            }
+          }
+          if (mergedThisRound) break;
+        }
+      }
+
+      return merged;
+    };
 
     const countBorderPixelsOnRing = (x0, y0, x1, y1, ring) => {
       let borderCount = 0;
@@ -290,84 +412,53 @@
       }
     }
 
-    for (let sy = 1; sy < height - 1; sy += 1) {
-      for (let sx = 1; sx < width - 1; sx += 1) {
-        const seed = idxOf(sx, sy);
-        if (!grownColorMask[seed] || visitedColor[seed]) continue;
+    // Color pipeline: HSV mask -> horizontal dilation -> light vertical dilation -> CC -> merge -> ROI.
+    const hRadius = Math.max(3, Math.min(12, Math.round(width / 180)));
+    const vRadius = Math.max(1, Math.min(3, Math.round(height / 600)));
+    const dilatedColorMask = dilateMask(grownColorMask, hRadius, vRadius);
+    const colorBoxesRaw = connectedComponentsBoxes(dilatedColorMask, visitedColorRaw, 10);
+    const mergeGap = Math.max(8, Math.min(26, Math.round(width / 140)));
+    const colorBoxesMerged = mergeCloseBoxes(colorBoxesRaw, mergeGap, 0.4);
 
-        const q = [[sx, sy]];
-        visitedColor[seed] = 1;
-        let minX = sx;
-        let minY = sy;
-        let maxX = sx;
-        let maxY = sy;
-        let count = 0;
+    for (const box of colorBoxesMerged) {
+      if (box.w < 20 || box.h < 6 || box.area < 30) continue;
+      if ((box.w / Math.max(1, box.h)) < 1.2) continue;
 
-        while (q.length) {
-          const [cx, cy] = q.shift();
-          count += 1;
-          minX = Math.min(minX, cx);
-          minY = Math.min(minY, cy);
-          maxX = Math.max(maxX, cx);
-          maxY = Math.max(maxY, cy);
+      const padX = Math.max(16, Math.round(box.w * 0.35));
+      const padY = Math.max(12, Math.round(box.h * 0.95));
+      const x0 = Math.max(0, box.minX - padX);
+      const y0 = Math.max(0, box.minY - padY);
+      const x1 = Math.min(width - 1, box.maxX + padX);
+      const y1 = Math.min(height - 1, box.maxY + padY);
 
-          for (const [dx, dy] of neighbors8) {
-            const nx = cx + dx;
-            const ny = cy + dy;
-            if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
-            const ni = idxOf(nx, ny);
-            if (visitedColor[ni] || !grownColorMask[ni]) continue;
-            visitedColor[ni] = 1;
-            q.push([nx, ny]);
-          }
+      const w = x1 - x0 + 1;
+      const h = y1 - y0 + 1;
+      const area = w * h;
+      if (w < 60 || h < 14 || area < 1800) continue;
+
+      let textCount = 0;
+      let n = 0;
+      for (let y = y0; y <= y1; y += 1) {
+        for (let x = x0; x <= x1; x += 1) {
+          if (grownColorMask[idxOf(x, y)]) textCount += 1;
+          n += 1;
         }
-
-        const textW = maxX - minX + 1;
-        const textH = maxY - minY + 1;
-        if (count < 12 || textW < 12 || textH < 6) continue;
-
-        const marginX = Math.round(Math.max(8, textW * 0.25));
-        const marginY = Math.round(Math.max(6, textH * 0.45));
-        const x0 = Math.max(0, minX - marginX);
-        const y0 = Math.max(0, minY - marginY);
-        const x1 = Math.min(width - 1, maxX + marginX);
-        const y1 = Math.min(height - 1, maxY + marginY);
-        const w = x1 - x0 + 1;
-        const h = y1 - y0 + 1;
-        const area = w * h;
-        if (w < 60 || h < 16 || area < 2200) continue;
-
-        const ar = w / Math.max(1, h);
-        if (ar < 1.6 || ar > 28) continue;
-
-        let innerText = 0;
-        let innerBorder = 0;
-        let n = 0;
-        for (let y = y0; y <= y1; y += 1) {
-          for (let x = x0; x <= x1; x += 1) {
-            const i = idxOf(x, y);
-            if (grownColorMask[i]) innerText += 1;
-            if (borderMask[i]) innerBorder += 1;
-            n += 1;
-          }
-        }
-
-        const textDensity = innerText / Math.max(1, n);
-        const borderDensity = innerBorder / Math.max(1, n);
-        if (textDensity < 0.0025) continue;
-
-        const score = (textDensity * 2400) + (borderDensity * 220) + (Math.log10(area + 1) * 5);
-        rawCandidates.push({
-          x: x0,
-          y: y0,
-          w,
-          h,
-          area,
-          textDensity,
-          score,
-          mechanism: "color",
-        });
       }
+
+      const textDensity = textCount / Math.max(1, n);
+      if (textCount < 12 || textDensity < 0.0016) continue;
+
+      const score = (textDensity * 3400) + (Math.log10(area + 1) * 4.5) + (box.w / Math.max(1, box.h));
+      rawCandidates.push({
+        x: x0,
+        y: y0,
+        w,
+        h,
+        area,
+        textDensity,
+        score,
+        mechanism: "color_pipeline",
+      });
     }
 
     rawCandidates.sort((a, b) => b.score - a.score);
@@ -388,7 +479,7 @@
     for (const candidate of rawCandidates) {
       const overlaps = selected.some((s) => iou(candidate, s) > 0.5);
       if (!overlaps) selected.push(candidate);
-      if (selected.length >= 14) break;
+      if (selected.length >= 20) break;
     }
 
     return selected;
