@@ -84,98 +84,189 @@
   }
 
   function detectCandidateRois(ctx, width, height) {
-    const block = Math.max(12, Math.round(Math.min(width, height) / 28));
-    const cols = Math.ceil(width / block);
-    const rows = Math.ceil(height / block);
-    const img = ctx.getImageData(0, 0, width, height).data;
+    const pixels = ctx.getImageData(0, 0, width, height).data;
+    const borderMask = new Uint8Array(width * height);
+    const textMask = new Uint8Array(width * height);
+    const visited = new Uint8Array(width * height);
+    const rawCandidates = [];
 
-    const grid = Array.from({ length: rows }, () => Array(cols).fill(0));
+    const idxOf = (x, y) => (y * width) + x;
+    const pxOf = (x, y) => ((y * width) + x) * 4;
 
-    for (let gy = 0; gy < rows; gy += 1) {
-      for (let gx = 0; gx < cols; gx += 1) {
-        const x0 = gx * block;
-        const y0 = gy * block;
-        const x1 = Math.min(x0 + block, width);
-        const y1 = Math.min(y0 + block, height);
+    const isGrayLike = (r, g, b) => {
+      const maxc = Math.max(r, g, b);
+      const minc = Math.min(r, g, b);
+      const sat = maxc - minc;
+      const lum = (r + g + b) / 3;
+      return sat <= 26 && lum >= 60 && lum <= 210;
+    };
 
-        let n = 0;
-        let sum = 0;
-        let sum2 = 0;
-        let dark = 0;
+    const isYellowOrGreenText = (r, g, b, a) => {
+      if (a < 50) return false;
+      const isGreen = g >= 90 && g > r * 1.1 && g > b * 1.2;
+      const isYellow = r >= 120 && g >= 120 && b <= 150 && (r + g) > (b * 2.1);
+      return isGreen || isYellow;
+    };
 
-        for (let y = y0; y < y1; y += 1) {
-          for (let x = x0; x < x1; x += 1) {
-            const i = (y * width + x) * 4;
-            const gray = (img[i] * 0.299) + (img[i + 1] * 0.587) + (img[i + 2] * 0.114);
-            sum += gray;
-            sum2 += gray * gray;
-            if (gray < 120) dark += 1;
-            n += 1;
-          }
-        }
+    for (let y = 1; y < height - 1; y += 1) {
+      for (let x = 1; x < width - 1; x += 1) {
+        const p = pxOf(x, y);
+        const r = pixels[p];
+        const g = pixels[p + 1];
+        const b = pixels[p + 2];
+        const a = pixels[p + 3];
+        const i = idxOf(x, y);
 
-        const mean = n ? sum / n : 0;
-        const variance = n ? (sum2 / n) - (mean * mean) : 0;
-        const darkRatio = n ? dark / n : 0;
+        if (isYellowOrGreenText(r, g, b, a)) textMask[i] = 1;
+        if (!isGrayLike(r, g, b) || a < 80) continue;
 
-        if (variance > 250 && darkRatio > 0.04 && darkRatio < 0.72) {
-          grid[gy][gx] = 1;
-        }
+        const pL = pxOf(x - 1, y);
+        const pR = pxOf(x + 1, y);
+        const pU = pxOf(x, y - 1);
+        const pD = pxOf(x, y + 1);
+
+        const lumL = (pixels[pL] + pixels[pL + 1] + pixels[pL + 2]) / 3;
+        const lumR = (pixels[pR] + pixels[pR + 1] + pixels[pR + 2]) / 3;
+        const lumU = (pixels[pU] + pixels[pU + 1] + pixels[pU + 2]) / 3;
+        const lumD = (pixels[pD] + pixels[pD + 1] + pixels[pD + 2]) / 3;
+
+        const contrast = Math.max(
+          Math.abs(((r + g + b) / 3) - lumL),
+          Math.abs(((r + g + b) / 3) - lumR),
+          Math.abs(((r + g + b) / 3) - lumU),
+          Math.abs(((r + g + b) / 3) - lumD),
+        );
+
+        if (contrast >= 18) borderMask[i] = 1;
       }
     }
 
-    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
-    const out = [];
-    const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const neighbors8 = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1], [1, -1], [-1, 1], [-1, -1],
+    ];
 
-    for (let y = 0; y < rows; y += 1) {
-      for (let x = 0; x < cols; x += 1) {
-        if (!grid[y][x] || visited[y][x]) continue;
+    const countBorderPixelsOnRing = (x0, y0, x1, y1, ring) => {
+      let borderCount = 0;
+      let total = 0;
+      for (let y = y0; y <= y1; y += 1) {
+        for (let x = x0; x <= x1; x += 1) {
+          const onRing = (x - x0 < ring) || (x1 - x < ring) || (y - y0 < ring) || (y1 - y < ring);
+          if (!onRing) continue;
+          total += 1;
+          if (borderMask[idxOf(x, y)]) borderCount += 1;
+        }
+      }
+      return { borderCount, total };
+    };
 
-        const q = [[x, y]];
-        visited[y][x] = true;
-        let minX = x;
-        let minY = y;
-        let maxX = x;
-        let maxY = y;
-        let count = 0;
+    for (let sy = 1; sy < height - 1; sy += 1) {
+      for (let sx = 1; sx < width - 1; sx += 1) {
+        const seed = idxOf(sx, sy);
+        if (!borderMask[seed] || visited[seed]) continue;
+
+        const q = [[sx, sy]];
+        visited[seed] = 1;
+        let minX = sx;
+        let minY = sy;
+        let maxX = sx;
+        let maxY = sy;
+        let borderCount = 0;
 
         while (q.length) {
           const [cx, cy] = q.shift();
-          count += 1;
+          borderCount += 1;
           minX = Math.min(minX, cx);
           minY = Math.min(minY, cy);
           maxX = Math.max(maxX, cx);
           maxY = Math.max(maxY, cy);
 
-          for (const [dx, dy] of neighbors) {
+          for (const [dx, dy] of neighbors8) {
             const nx = cx + dx;
             const ny = cy + dy;
-            if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-            if (visited[ny][nx] || !grid[ny][nx]) continue;
-            visited[ny][nx] = true;
+            if (nx <= 0 || ny <= 0 || nx >= width - 1 || ny >= height - 1) continue;
+            const ni = idxOf(nx, ny);
+            if (visited[ni] || !borderMask[ni]) continue;
+            visited[ni] = 1;
             q.push([nx, ny]);
           }
         }
 
-        if (count < 2) continue;
+        const w = maxX - minX + 1;
+        const h = maxY - minY + 1;
+        const area = w * h;
+        if (w < 60 || h < 18 || area < 3000) continue;
 
-        const rx = minX * block;
-        const ry = minY * block;
-        const rw = Math.min((maxX - minX + 1) * block, width - rx);
-        const rh = Math.min((maxY - minY + 1) * block, height - ry);
-        const area = rw * rh;
-        if (area < 2400 || rw < 36 || rh < 20) continue;
+        const ar = w / Math.max(1, h);
+        if (ar < 1.4 || ar > 22) continue;
 
-        const ar = rw / Math.max(1, rh);
-        if (ar < 0.7 || ar > 18) continue;
+        const perimeter = (2 * w) + (2 * h);
+        const borderDensityPerimeter = borderCount / Math.max(1, perimeter);
+        if (borderDensityPerimeter < 0.35 || borderDensityPerimeter > 3.2) continue;
 
-        out.push({ x: rx, y: ry, w: rw, h: rh, area });
+        const ring = countBorderPixelsOnRing(minX, minY, maxX, maxY, 2);
+        const ringCoverage = ring.total ? ring.borderCount / ring.total : 0;
+        if (ringCoverage < 0.18) continue;
+
+        const ix0 = minX + 2;
+        const iy0 = minY + 2;
+        const ix1 = maxX - 2;
+        const iy1 = maxY - 2;
+        if (ix1 <= ix0 || iy1 <= iy0) continue;
+
+        let textCount = 0;
+        let innerCount = 0;
+        let innerBorderCount = 0;
+        for (let y = iy0; y <= iy1; y += 1) {
+          for (let x = ix0; x <= ix1; x += 1) {
+            const i = idxOf(x, y);
+            innerCount += 1;
+            if (textMask[i]) textCount += 1;
+            if (borderMask[i]) innerBorderCount += 1;
+          }
+        }
+
+        const textDensity = textCount / Math.max(1, innerCount);
+        const innerBorderDensity = innerBorderCount / Math.max(1, innerCount);
+
+        if (textCount < 20 || textDensity < 0.006) continue;
+        if (innerBorderDensity > 0.2) continue;
+
+        const score = (ringCoverage * 120) + (textDensity * 1800) + (Math.log10(area + 1) * 6);
+        rawCandidates.push({
+          x: minX,
+          y: minY,
+          w,
+          h,
+          area,
+          textDensity,
+          score,
+        });
       }
     }
 
-    out.sort((a, b) => b.area - a.area);
-    return out.slice(0, 10);
+    rawCandidates.sort((a, b) => b.score - a.score);
+
+    const selected = [];
+    const iou = (a, b) => {
+      const x1 = Math.max(a.x, b.x);
+      const y1 = Math.max(a.y, b.y);
+      const x2 = Math.min(a.x + a.w, b.x + b.w);
+      const y2 = Math.min(a.y + a.h, b.y + b.h);
+      const iw = Math.max(0, x2 - x1);
+      const ih = Math.max(0, y2 - y1);
+      const inter = iw * ih;
+      const union = (a.w * a.h) + (b.w * b.h) - inter;
+      return union > 0 ? inter / union : 0;
+    };
+
+    for (const candidate of rawCandidates) {
+      const overlaps = selected.some((s) => iou(candidate, s) > 0.5);
+      if (!overlaps) selected.push(candidate);
+      if (selected.length >= 10) break;
+    }
+
+    return selected;
   }
 
   function buildRoiThumb(sourceCanvas, roi, idx) {
@@ -193,7 +284,8 @@
     img.alt = `ROI ${idx + 1}`;
 
     const cap = document.createElement("figcaption");
-    cap.textContent = `#${idx + 1} • x:${roi.x} y:${roi.y} w:${roi.w} h:${roi.h}`;
+    const textDensity = typeof roi.textDensity === "number" ? ` • txt:${(roi.textDensity * 100).toFixed(1)}%` : "";
+    cap.textContent = `#${idx + 1} • x:${roi.x} y:${roi.y} w:${roi.w} h:${roi.h}${textDensity}`;
 
     fig.appendChild(img);
     fig.appendChild(cap);
