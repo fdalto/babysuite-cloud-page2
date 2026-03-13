@@ -41,6 +41,7 @@
   }
 
   body.index2-body #btnFrases,
+  body.index2-body #btnOCR,
   body.index2-body #btnModelos,
   body.index2-body #btnTabToggle {
     height: 42px;
@@ -64,12 +65,14 @@
   }
 
   body.index2-body #btnModelos.is-laudo,
+  body.index2-body #btnOCR.is-laudo,
   body.index2-body #btnTabToggle.is-print {
     background: #ffffff;
     color: var(--index2-purple);
   }
 
   body.index2-body #btnModelos.is-laudo,
+  body.index2-body #btnOCR.is-laudo,
   body.index2-body #btnTabToggle.is-laudo {
     border-color: transparent;
     background: var(--index2-purple);
@@ -79,8 +82,43 @@
 
   body.index2-body.is-print-tab #btnModelos,
   body.index2-body.is-print-tab #btnFrases,
+  body.index2-body.is-print-tab #btnOCR,
   body.index2-body.is-modelos-tab #btnFrases {
     display: none;
+  }
+
+  body.index2-body.is-ocr-tab #btnFrases,
+  body.index2-body.is-ocr-tab #btnModelos,
+  body.index2-body.is-ocr-tab #btnTabToggle {
+    display: none;
+  }
+
+  body.index2-body #btnOCR {
+    border: 1px solid rgba(95, 198, 200, 0.65);
+    background: var(--index2-green);
+    color: #111827;
+    box-shadow: 0 10px 22px rgba(95, 198, 200, 0.22);
+  }
+
+  body.index2-body #btnOCR.is-laudo {
+    border-color: transparent;
+    background: var(--index2-purple);
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(123, 82, 159, 0.22);
+  }
+
+  body.index2-body .ocr-tab-wrap {
+    height: 100%;
+    padding: 0;
+    background: #eef3fb;
+  }
+
+  body.index2-body .ocr-tab-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    background: transparent;
   }
 
   body.index2-body .modelos-tab-wrap {
@@ -350,6 +388,7 @@
   <div class="topbar-right" id="topbarActions">
     <button class="btn btn-modelos" id="btnModelos">Modelos</button>
     <button class="btn btn-frases" id="btnFrases">Frases</button>
+    <button class="btn btn-modelos" id="btnOCR" type="button">OCR</button>
     <button class="btn btn-json" id="btnJSON" hidden>JSON</button>
     <button class="btn btn-modelos" id="btnTabToggle" type="button">Impressão</button>
   </div>
@@ -474,6 +513,17 @@
       </div>
     </div>
   </section>
+
+  <section id="tab-ocr" class="tab-panel">
+    <div class="ocr-tab-wrap">
+      <iframe
+        id="ocrTabFrame"
+        class="ocr-tab-frame"
+        src="./ocrdeveloping/index2.html"
+        title="OCR Developing"
+      ></iframe>
+    </div>
+  </section>
 </div>
 
 <script src="./script_main.js"></script>
@@ -483,6 +533,7 @@
   (function () {
     const panels = document.querySelectorAll(".tab-panel");
     const modelosBtn = document.getElementById("btnModelos");
+    const ocrBtn = document.getElementById("btnOCR");
     const toggleBtn = document.getElementById("btnTabToggle");
 
     function activate(tabId) {
@@ -490,6 +541,7 @@
 
       document.body.classList.toggle("is-print-tab", tabId === "tab-print");
       document.body.classList.toggle("is-modelos-tab", tabId === "tab-modelos");
+      document.body.classList.toggle("is-ocr-tab", tabId === "tab-ocr");
 
       if (toggleBtn) {
         const isPrint = tabId === "tab-print";
@@ -503,6 +555,13 @@
         modelosBtn.textContent = isModelos ? "Laudo" : "Modelos";
         modelosBtn.classList.toggle("is-modelos", !isModelos);
         modelosBtn.classList.toggle("is-laudo", isModelos);
+      }
+
+      if (ocrBtn) {
+        const isOCR = tabId === "tab-ocr";
+        ocrBtn.textContent = isOCR ? "Laudo" : "OCR";
+        ocrBtn.classList.toggle("is-modelos", !isOCR);
+        ocrBtn.classList.toggle("is-laudo", isOCR);
       }
     }
 
@@ -518,6 +577,14 @@
       toggleBtn.addEventListener("click", () => {
         const activePanel = document.querySelector(".tab-panel.is-active");
         const nextTab = activePanel?.id === "tab-print" ? "tab-laudo" : "tab-print";
+        activate(nextTab);
+      });
+    }
+
+    if (ocrBtn) {
+      ocrBtn.addEventListener("click", () => {
+        const activePanel = document.querySelector(".tab-panel.is-active");
+        const nextTab = activePanel?.id === "tab-ocr" ? "tab-laudo" : "tab-ocr";
         activate(nextTab);
       });
     }

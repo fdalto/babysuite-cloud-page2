@@ -1,0 +1,118 @@
+{
+  "fallback": {
+    "manufacturer": "Samsung",
+    "model": "HS40",
+    "crop": [140, 55, 5],
+    "tuning": {
+      "ocrMinConfidence": 0.7,
+      "color": {
+        "alphaMin": 20,
+        "hueGreenMin": 65,
+        "hueGreenMax": 175,
+        "satGreenMin": 0.26,
+        "hueYellowMin": 30,
+        "hueYellowMax": 80,
+        "satYellowMin": 0.28,
+        "hueOrangeMin": 12,
+        "hueOrangeMax": 50,
+        "satOrangeMin": 0.28,
+        "valueMin": 0.2,
+        "chromaMin": 24,
+        "strongAlphaMin": 28,
+        "strongHueGreenMin": 70,
+        "strongHueGreenMax": 170,
+        "strongSatGreenMin": 0.36,
+        "strongHueYellowMin": 32,
+        "strongHueYellowMax": 74,
+        "strongSatYellowMin": 0.4,
+        "strongHueOrangeMin": 14,
+        "strongHueOrangeMax": 45,
+        "strongSatOrangeMin": 0.4,
+        "strongValueMin": 0.22,
+        "strongChromaMin": 34
+      },
+      "gray": {
+        "maxSaturation": 26,
+        "minLuminance": 60,
+        "maxLuminance": 210,
+        "minAlpha": 80,
+        "minContrast": 18
+      },
+      "dilation": {
+        "growMaskRadius": 1,
+        "hRadiusMin": 3,
+        "hRadiusMax": 12,
+        "hRadiusDiv": 180,
+        "vRadiusMin": 1,
+        "vRadiusMax": 3,
+        "vRadiusDiv": 600,
+        "mergeGapMin": 8,
+        "mergeGapMax": 26,
+        "mergeGapDiv": 140
+      },
+      "geometry": {
+        "boxMinW": 60,
+        "boxMinH": 18,
+        "boxMinArea": 3000,
+        "boxMinAspect": 1.4,
+        "boxMaxAspect": 22,
+        "boxBorderDensityMin": 0.35,
+        "boxBorderDensityMax": 3.2,
+        "boxRingSize": 2,
+        "boxRingCoverageMin": 0.18,
+        "boxInnerMargin": 2,
+        "boxTextCountMin": 10,
+        "boxTextDensityMin": 0.0035,
+        "boxInnerBorderDensityMax": 0.2,
+        "negativeMaskPadXMin": 6,
+        "negativeMaskPadXRatio": 0.08,
+        "negativeMaskPadYMin": 6,
+        "negativeMaskPadYRatio": 0.2,
+        "colorCompMinW": 42,
+        "colorCompMinH": 8,
+        "colorCompMinArea": 300,
+        "colorCompMinAspect": 1.2,
+        "colorRoiPadXMin": 7,
+        "colorRoiPadXRatio": 0.147,
+        "colorRoiPadYMin": 12,
+        "colorRoiPadYRatio": 0.95,
+        "colorRoiMinW": 72,
+        "colorRoiMinH": 16,
+        "colorRoiMinArea": 2200,
+        "colorTextCountMin": 16,
+        "colorTextDensityMin": 0.06,
+        "colorStrongCountMin": 6,
+        "colorStrongDensityMin": 0.0008,
+        "colorStrongShareMin": 0.12,
+        "colorOverlapIouMin": 0.03,
+        "colorNearbyGapMinPx": 16,
+        "colorNearbyGapHeightFactor": 0.8,
+        "selectionIouMax": 0.5
+      }
+    }
+  },
+  "profiles": [
+    {
+      "manufacturer": "Samsung",
+      "model": "HS40",
+      "crop": [140, 55, 5]
+    },
+    {
+      "manufacturer": "GE",
+      "model": "LOGIQ P9",
+      "crop": [100, 40, 8],
+      "tuning": {
+        "ocrMinConfidence": 0.68,
+        "color": {
+          "satGreenMin": 0.24,
+          "satYellowMin": 0.25,
+          "satOrangeMin": 0.25
+        },
+        "geometry": {
+          "colorTextDensityMin": 0.05,
+          "colorRoiPadXRatio": 0.12
+        }
+      }
+    }
+  ]
+}

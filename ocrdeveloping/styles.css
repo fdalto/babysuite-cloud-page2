@@ -123,9 +123,11 @@ th {
 
 .rois-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
-  max-width: 460px;
+  max-width: none;
+  width: 100%;
+  justify-items: center;
 }
 
 .roi-item {
@@ -133,6 +135,7 @@ th {
   border-radius: 8px;
   padding: 6px;
   background: #fbfdff;
+  width: 80%;
 }
 
 .roi-item figcaption {

@@ -1,0 +1,9 @@
+{
+  "mode": "tesseract",
+  "modelTag": "tesseract-eng",
+  "tesseractScriptUrl": "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js",
+  "language": "eng",
+  "psm": "6",
+  "oem": "1",
+  "testVariants": ["normal"]
+}

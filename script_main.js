@@ -6,6 +6,7 @@ let PlavrasModificadoras = ["Direito", "Esquerdo", "medindo", "supraespinal", "i
 let modelos = [];
 
 let activeLineIndex = -1; // linha ativa no PROMPT (0-based)
+let lastPromptSelection = { start: 0, end: 0 };
 const MODELO_GROUPS = [
   "Ginecologia Obstetrícia",
   "Vascular",
@@ -125,7 +126,7 @@ function renderButtons(){
     areaNome.appendChild(createButton({
       label: nome,
       className: "btn-blue",
-      onClick: () => insertNewLineInPrompt(`incluir frase ${nome}`)
+      onClick: () => insertNewLineAtLastCursor(`incluir frase ${nome}`)
     }));
   });
 
@@ -139,6 +140,7 @@ function renderButtons(){
 }
 
 function applyModifierToActiveLine(word){
+  syncActiveLineWithLastCursor();
   const lines = getPromptLines();
 
   // Se não existe linha ativa, cria nova linha com o modificador
@@ -184,9 +186,90 @@ function getPromptLines(){
   return raw.split("\n");
 }
 
+function getPromptEl(){
+  return el("campoPrompt");
+}
+
+function lineIndexFromPosition(value, position){
+  const safeValue = String(value || "").replace(/\r\n/g, "\n");
+  const safePos = Math.max(0, Math.min(Number(position) || 0, safeValue.length));
+  return safeValue.slice(0, safePos).split("\n").length - 1;
+}
+
+function rememberPromptSelection(){
+  const t = getPromptEl();
+  if (!t) return;
+  const start = Number.isFinite(t.selectionStart) ? t.selectionStart : t.value.length;
+  const end = Number.isFinite(t.selectionEnd) ? t.selectionEnd : start;
+  lastPromptSelection = { start, end };
+  activeLineIndex = Math.max(0, lineIndexFromPosition(t.value, start));
+}
+
+function syncActiveLineWithLastCursor(){
+  const t = getPromptEl();
+  if (!t) return;
+  const pos = Math.max(0, Math.min(lastPromptSelection.start || 0, t.value.length));
+  activeLineIndex = Math.max(0, lineIndexFromPosition(t.value, pos));
+}
+
+function insertTextAtLastCursor(text, { asNewLine = false } = {}){
+  const t = getPromptEl();
+  if (!t) return;
+
+  const value = t.value.replace(/\r\n/g, "\n");
+  const start = Math.max(0, Math.min(lastPromptSelection.start || 0, value.length));
+  const end = Math.max(start, Math.min(lastPromptSelection.end || start, value.length));
+  const before = value.slice(0, start);
+  const after = value.slice(end);
+
+  let insert = String(text || "");
+  if (asNewLine) {
+    insert = insert.trim();
+    if (before.length > 0 && !before.endsWith("\n")) insert = `\n${insert}`;
+    if (after.length > 0 && !after.startsWith("\n")) insert = `${insert}\n`;
+  }
+
+  const nextValue = `${before}${insert}${after}`;
+  const nextCaret = before.length + insert.length;
+  t.value = nextValue;
+  t.selectionStart = t.selectionEnd = nextCaret;
+  t.focus();
+  rememberPromptSelection();
+}
+
+function insertNewLineAtLastCursor(text){
+  insertTextAtLastCursor(text, { asNewLine: true });
+}
+
+function appendPromptLineToEnd(text){
+  const t = getPromptEl();
+  if (!t) return;
+  const line = String(text || "").replace(/\s+/g, " ").trim();
+  if (!line) return;
+
+  const value = t.value.replace(/\r\n/g, "\n");
+  const nextValue = value.trim() ? `${value}\n${line}` : line;
+  t.value = nextValue;
+  const end = nextValue.length;
+  t.selectionStart = t.selectionEnd = end;
+  rememberPromptSelection();
+}
+
+window.appendPromptLineToEnd = appendPromptLineToEnd;
+
 function setPromptLines(lines){
   ensureTrailingSpaceOnActiveLine(lines);
-  el("campoPrompt").value = lines.join("\n");
+  const t = getPromptEl();
+  if (!t) return;
+  t.value = lines.join("\n");
+  const linePos = Math.max(0, Math.min(activeLineIndex, lines.length - 1));
+  let pos = 0;
+  for (let i = 0; i < linePos; i++){
+    pos += (lines[i] || "").length + 1;
+  }
+  pos += (lines[linePos] || "").length;
+  t.selectionStart = t.selectionEnd = pos;
+  rememberPromptSelection();
 }
 
 
@@ -219,6 +302,7 @@ function insertNewLineInPrompt(text){
 }
 
 function appendToActiveLine(word){
+  syncActiveLineWithLastCursor();
   const lines = getPromptLines();
 
   // Se não existe linha ativa, cria uma nova linha com a palavra (fallback)
@@ -244,7 +328,7 @@ function appendToActiveLine(word){
 }
 
 function focusPromptAtActiveLineEnd(){
-  const t = el("campoPrompt");
+  const t = getPromptEl();
   t.focus();
 
   const value = t.value.replace(/\r\n/g, "\n");
@@ -263,6 +347,7 @@ function focusPromptAtActiveLineEnd(){
   // Se a linha ativa termina com espaço, o cursor já ficará “1 espaço depois”.
   // (pos já aponta depois desse espaço)
   t.selectionStart = t.selectionEnd = pos;
+  rememberPromptSelection();
 }
 
 
@@ -647,14 +732,13 @@ function init(){
   window.modelActivated = window.modelActivated || {};
   window.analiseChoice = window.analiseChoice || { tipo: "Ambos" };
   initAnaliseSelector();
-// Clique no PROMPT define linha ativa (opcional, mas útil)
-  el("campoPrompt").addEventListener("click", () => {
-    // tenta inferir linha pelo caret
-    const t = el("campoPrompt");
-    const upToCaret = t.value.slice(0, t.selectionStart).replace(/\r\n/g, "\n");
-    const line = upToCaret.split("\n").length - 1;
-    activeLineIndex = Math.max(0, line);
-  });
+  const prompt = getPromptEl();
+  if (prompt) {
+    ["click", "keyup", "mouseup", "select", "input", "focus", "blur"].forEach((evt) => {
+      prompt.addEventListener(evt, rememberPromptSelection);
+    });
+    rememberPromptSelection();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

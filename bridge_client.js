@@ -9,14 +9,107 @@
   const printBtnEl = document.getElementById("btnPrintLayout");
   const clearBtnEl = document.getElementById("btnClearPrintImages");
   const endpointInputEl = document.getElementById("printUploadEndpoint");
+  const OCR_IFRAME_ID = "ocrTabFrame";
 
   window.__CURRENT_SR__ = window.__CURRENT_SR__ || null;
   window.__LAST_IMAGE__ = window.__LAST_IMAGE__ || null;
   window.__LAST_BRIDGE_METADATA__ = window.__LAST_BRIDGE_METADATA__ || null;
   window.__BRIDGE_PRINT_IMAGES__ = window.__BRIDGE_PRINT_IMAGES__ || [];
+  window.__OCR_DEV_IMAGE_STORE__ = window.__OCR_DEV_IMAGE_STORE__ || { items: {}, order: [] };
+  window.__OCR_RESULTS_BY_MESSAGE_ID__ = window.__OCR_RESULTS_BY_MESSAGE_ID__ || {};
+  window.__OCR_PROMPT_LINES__ = window.__OCR_PROMPT_LINES__ || { order: [], byMessageId: {} };
 
   function setPrintStatus(text) {
     if (printStatusEl) printStatusEl.textContent = text;
+  }
+
+  function getCompatibleImageStore() {
+    const s = window.__OCR_DEV_IMAGE_STORE__;
+    if (s && typeof s === "object" && s.items && s.order) return s;
+    const fresh = { items: {}, order: [] };
+    window.__OCR_DEV_IMAGE_STORE__ = fresh;
+    return fresh;
+  }
+
+  function saveImageVariantCompatible(id, parentId, metadata, blob, preprocessProfile) {
+    if (!id || !blob) return;
+    const store = getCompatibleImageStore();
+    const prev = store.items[id];
+    if (prev?.objectUrl) URL.revokeObjectURL(prev.objectUrl);
+
+    const objectUrl = URL.createObjectURL(blob);
+    store.items[id] = {
+      id,
+      parentId: parentId || null,
+      ts: Date.now(),
+      metadata: metadata || {},
+      preprocessProfile: preprocessProfile || null,
+      blob,
+      objectUrl,
+    };
+    if (!store.order.includes(id)) store.order.push(id);
+    window.__OCR_DEV_LAST_IMAGE_ID__ = id;
+    return store.items[id];
+  }
+
+  function forwardToOcrTab(data) {
+    const frame = document.getElementById(OCR_IFRAME_ID);
+    const target = frame?.contentWindow;
+    if (!target) return;
+    try {
+      target.postMessage(data, window.location.origin);
+    } catch (_) {
+      // ignore relay errors; OCR tab can be unavailable while loading
+    }
+  }
+
+  function upsertPromptLine(messageId, textLine) {
+    const line = String(textLine || "").replace(/\s+/g, " ").trim();
+    if (!messageId || !line) return;
+
+    const promptState = window.__OCR_PROMPT_LINES__;
+    const prev = promptState.byMessageId[messageId] || "";
+    if (!prev) {
+      promptState.order.push(messageId);
+    }
+    if (prev === line) return;
+    promptState.byMessageId[messageId] = line;
+
+    if (typeof window.appendPromptLineToEnd === "function") {
+      window.appendPromptLineToEnd(line);
+      return;
+    }
+
+    const promptEl = document.getElementById("campoPrompt");
+    if (!promptEl) return;
+    const current = String(promptEl.value || "").replace(/\r\n/g, "\n");
+    promptEl.value = current.trim() ? `${current}\n${line}` : line;
+  }
+
+  function handleLocalOcrResult(payload) {
+    const p = payload && typeof payload === "object" ? payload : {};
+    const messageId = p.message_id || "";
+    if (!messageId) return;
+
+    const textLine = String(p.ocr_text_line || "").replace(/\s+/g, " ").trim();
+    if (!textLine) return;
+
+    window.__OCR_RESULTS_BY_MESSAGE_ID__[messageId] = {
+      message_id: messageId,
+      ocr_text_line: textLine,
+      ts: p.ts || Date.now(),
+      metadata: p.metadata || {},
+      preprocess_profile: p.preprocess_profile || null,
+    };
+
+    const cropId = p.crop_image_id || `${messageId}_anonimyzed`;
+    const cropBuffer = p.crop_png_buffer;
+    if (cropBuffer instanceof ArrayBuffer) {
+      const blob = new Blob([cropBuffer], { type: p.crop_mime || "image/png" });
+      saveImageVariantCompatible(cropId, messageId, p.metadata || {}, blob, p.preprocess_profile || null);
+    }
+
+    upsertPromptLine(messageId, textLine);
   }
 
   function getEndpoint() {
@@ -47,10 +140,20 @@
     return `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}`;
   }
 
+  function normalizePatientName(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "-";
+    return s
+      .replace(/\^+/g, ", ")
+      .replace(/\s*,\s*/g, ", ")
+      .replace(/\s{2,}/g, " ")
+      .trim() || "-";
+  }
+
   function readDicomFields(metadata) {
     const m = metadata && typeof metadata === "object" ? metadata : {};
     return {
-      nome: m.PatientName || m.patient_name || "-",
+      nome: normalizePatientName(m.PatientName || m.patient_name || "-"),
       data: formatDicomDate(m.StudyDate || m.study_date || ""),
       registro: m.PatientID || m.patient_id || "-",
       dn: formatDicomDate(m.PatientBirthDate || m.patient_birth_date || m.DN || ""),
@@ -60,7 +163,7 @@
 
   function summarizeMetadata(metadata) {
     const f = readDicomFields(metadata);
-    return `Nome: ${f.nome} | Data: ${f.data} | Registro: ${f.registro} | DN: ${f.dn} | Modalidade: ${f.modalidade}`;
+    return `Nome: ${f.nome} | Data: ${f.data} | Registro: ${f.registro} | DN: ${f.dn}`;
   }
 
   function renderPrintImages() {
@@ -97,13 +200,14 @@
 
   function addImageToMemory(messageId, metadata, pngBuffer) {
     const blob = new Blob([pngBuffer], { type: "image/png" });
-    const objectUrl = URL.createObjectURL(blob);
+    const imageId = messageId || String(Date.now());
+    const saved = saveImageVariantCompatible(imageId, null, metadata, blob, null);
     const item = {
-      message_id: messageId || String(Date.now()),
+      message_id: imageId,
       ts: Date.now(),
       metadata: metadata || {},
       png_buffer: pngBuffer,
-      objectUrl,
+      objectUrl: saved?.objectUrl || URL.createObjectURL(blob),
     };
 
     window.__BRIDGE_PRINT_IMAGES__.push(item);
@@ -157,13 +261,11 @@
   function buildHeaderHtml(fields) {
     return `
       <header class="sheet-header">
-        <h1>Impressão de Imagens</h1>
         <div class="sheet-header-grid">
           <div><strong>Nome:</strong> ${escapeHtml(fields.nome)}</div>
           <div><strong>Data:</strong> ${escapeHtml(fields.data)}</div>
           <div><strong>Registro:</strong> ${escapeHtml(fields.registro)}</div>
           <div><strong>DN:</strong> ${escapeHtml(fields.dn)}</div>
-          <div><strong>Modalidade:</strong> ${escapeHtml(fields.modalidade)}</div>
         </div>
       </header>
     `;
@@ -195,7 +297,8 @@
 
         return `
           <section class="sheet ${pageIdx < pages.length - 1 ? "with-break" : ""}">
-            ${pageIdx === 0 ? buildHeaderHtml(firstFields) : ""}
+            <div class="sheet-top-blank"></div>
+            ${buildHeaderHtml(firstFields)}
             <main class="sheet-grid layout-${layout.perPage}">
               ${cards}
             </main>
@@ -205,12 +308,6 @@
       })
       .join("");
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      setPrintStatus("Bloqueio de pop-up. Permita pop-ups para imprimir.");
-      return;
-    }
-
     const html = `
       <!doctype html>
       <html lang="pt-BR">
@@ -218,35 +315,41 @@
         <meta charset="utf-8" />
         <title>Impressão</title>
         <style>
-          @page { size: A4 portrait; margin: 1cm; }
+          @page { size: A4 portrait; margin: 8mm; }
           * { box-sizing: border-box; }
           html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
           .sheet {
-            min-height: calc(29.7cm - 2cm);
+            height: 281mm;
+            max-height: 281mm;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+            padding: 0 6mm;
           }
           .with-break { break-after: page; page-break-after: always; }
+          .sheet-top-blank {
+            height: 4mm;
+            flex: 0 0 auto;
+          }
           .sheet-header {
             border-bottom: 1px solid #ccc;
-            padding-bottom: 4mm;
-            margin-bottom: 4mm;
-          }
-          .sheet-header h1 {
-            margin: 0 0 3mm 0;
-            font-size: 16px;
+            padding-bottom: 2mm;
+            margin-bottom: 2mm;
+            flex: 0 0 auto;
           }
           .sheet-header-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 2mm 6mm;
-            font-size: 12px;
+            gap: 1.5mm 5mm;
+            font-size: 11px;
+            line-height: 1.2;
           }
           .sheet-grid {
             flex: 1;
             display: grid;
-            gap: 3mm;
+            gap: 2mm;
             min-height: 0;
+            align-content: stretch;
           }
           .sheet-grid.layout-8 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -271,9 +374,11 @@
             background: #111;
           }
           .sheet-footer {
-            margin-top: 3mm;
-            text-align: center;
-            font-size: 12px;
+            margin-top: 2mm;
+            text-align: right;
+            font-size: 11px;
+            padding-top: 2.2em;
+            flex: 0 0 auto;
           }
         </style>
       </head>
@@ -283,14 +388,46 @@
       </html>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
+    const oldFrame = document.getElementById("printSandboxFrame");
+    if (oldFrame) oldFrame.remove();
 
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
+    const iframe = document.createElement("iframe");
+    iframe.id = "printSandboxFrame";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc || !iframe.contentWindow) {
+      iframe.remove();
+      setPrintStatus("Não foi possível preparar a impressão.");
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    const tryPrint = () => {
+      try {
+        const win = iframe.contentWindow;
+        if (!win) throw new Error("print window unavailable");
+        win.focus();
+        win.print();
+        setTimeout(() => iframe.remove(), 2000);
+      } catch (_) {
+        iframe.remove();
+        setPrintStatus("Falha ao abrir o diálogo de impressão.");
+      }
     };
+
+    // Aguarda render mínima para evitar folha em branco no primeiro print.
+    setTimeout(tryPrint, 250);
 
     setPrintStatus(`Layout de impressão gerado: ${items.length} imagem(ns).`);
   }
@@ -385,6 +522,7 @@
       }
 
       window.__LAST_BRIDGE_METADATA__ = data.metadata || null;
+      forwardToOcrTab(data);
       postAck(data.message_id);
       return;
     }
@@ -396,8 +534,16 @@
       }
 
       window.__LAST_BRIDGE_METADATA__ = data.metadata || null;
+      forwardToOcrTab(data);
       postAck(data.message_id);
     }
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    const data = event.data || {};
+    if (data.type !== "ocr_result_local") return;
+    handleLocalOcrResult(data.payload || {});
   });
 
   let lastSent = "";
