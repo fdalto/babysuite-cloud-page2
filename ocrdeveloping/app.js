@@ -476,20 +476,42 @@
       .replace(/[^a-z0-9]+/g, "");
   }
 
+  function detectManufacturerFromText(text) {
+    const key = normalizeKey(text);
+    if (!key) return "";
+    const vendors = [
+      { canonical: "Samsung", aliases: ["samsung", "medison"] },
+      { canonical: "Philips", aliases: ["philips"] },
+      { canonical: "Vinno", aliases: ["vinno"] },
+      { canonical: "GE", aliases: ["ge", "generalelectric"] },
+      { canonical: "Toshiba", aliases: ["toshiba"] },
+      { canonical: "Canon", aliases: ["canon"] },
+      { canonical: "Esaote", aliases: ["esaote"] },
+    ];
+    for (const vendor of vendors) {
+      if (vendor.aliases.some((alias) => key.includes(alias))) {
+        return vendor.canonical;
+      }
+    }
+    return "";
+  }
+
   function getMetadataDevice(metadata) {
     const m = metadata && typeof metadata === "object" ? metadata : {};
-    const manufacturer =
+    const manufacturerRaw =
       m.Manufacturer ||
       m.manufacturer ||
       m.manufacturer_name ||
       "";
-    const model =
+    const modelRaw =
       m.ManufacturerModelName ||
       m.manufacturer_model_name ||
       m.model_name ||
       m.ModelName ||
       "";
-    return { manufacturer, model };
+    const manufacturer = detectManufacturerFromText(`${manufacturerRaw} ${modelRaw}`) || String(manufacturerRaw || "").trim();
+    const model = String(modelRaw || "").trim();
+    return { manufacturer, model, manufacturerRaw, modelRaw };
   }
 
   function sanitizeCrop(crop) {
@@ -521,15 +543,25 @@
     const modelKey = normalizeKey(model);
 
     const profiles = Array.isArray(cfg.profiles) ? cfg.profiles : [];
-    const matched = profiles.find((p) => {
-      const pm = normalizeKey(p?.manufacturer);
-      const pmodel = normalizeKey(p?.model);
-      if (!pm || !pmodel) return false;
-      return pm === mKey && pmodel === modelKey;
+    const profileManufacturerKey = (p) => normalizeKey(detectManufacturerFromText(p?.manufacturer || "") || p?.manufacturer || "");
+    const profileModelKey = (p) => normalizeKey(p?.model || "");
+
+    const byManufacturer = profiles.filter((p) => {
+      const pm = profileManufacturerKey(p);
+      if (!pm || !mKey) return false;
+      return pm === mKey;
     });
 
+    const matched = byManufacturer.find((p) => {
+      const pmodel = profileModelKey(p);
+      if (!pmodel || !modelKey) return false;
+      return modelKey.includes(pmodel) || pmodel.includes(modelKey);
+    });
+
+    const manufacturerFallback = matched ? null : (byManufacturer[0] || null);
+
     const fallback = cfg.fallback || DEFAULT_PREPROCESS_CONFIG.fallback;
-    const selected = matched || fallback;
+    const selected = matched || manufacturerFallback || fallback;
     const fallbackTuning = mergeTuning(DEFAULT_TUNING, fallback.tuning || {});
     const selectedTuning = mergeTuning(fallbackTuning, selected.tuning || {});
     return {
@@ -537,7 +569,8 @@
       model: selected.model || fallback.model || "HS40",
       crop: sanitizeCrop(selected.crop || fallback.crop),
       tuning: selectedTuning,
-      isFallback: !matched,
+      isFallback: !matched && !manufacturerFallback,
+      matchType: matched ? "manufacturer_model" : (manufacturerFallback ? "manufacturer_only" : "default"),
     };
   }
 
@@ -561,6 +594,23 @@
       m.ModelName ||
       "-";
     return { patient, date, pid, modality, manufacturer, model, raw: m };
+  }
+
+  function escapeHtml(text) {
+    return String(text ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function safeMetadataJson(metadata) {
+    try {
+      return JSON.stringify(metadata && typeof metadata === "object" ? metadata : {}, null, 2);
+    } catch (_) {
+      return "{}";
+    }
   }
 
   function arrayBufferFromBase64(base64) {
@@ -1229,14 +1279,16 @@
   function buildMetaCell(messageId, metaSummary) {
     const box = document.createElement("div");
     box.className = "meta";
+    const allTagsJson = safeMetadataJson(metaSummary.raw);
     box.innerHTML = [
-      `<strong>Paciente:</strong> ${metaSummary.patient}`,
-      `<br><strong>Data:</strong> ${metaSummary.date}`,
-      `<br><strong>Registro:</strong> ${metaSummary.pid}`,
-      `<br><strong>Modalidade:</strong> ${metaSummary.modality}`,
-      `<br><strong>Fabricante:</strong> ${metaSummary.manufacturer}`,
-      `<br><strong>Modelo:</strong> ${metaSummary.model}`,
-      `<br><code>message_id: ${messageId || "-"}</code>`,
+      `<strong>Paciente:</strong> ${escapeHtml(metaSummary.patient)}`,
+      `<br><strong>Data:</strong> ${escapeHtml(metaSummary.date)}`,
+      `<br><strong>Registro:</strong> ${escapeHtml(metaSummary.pid)}`,
+      `<br><strong>Modalidade:</strong> ${escapeHtml(metaSummary.modality)}`,
+      `<br><strong>Fabricante:</strong> ${escapeHtml(metaSummary.manufacturer)}`,
+      `<br><strong>Modelo:</strong> ${escapeHtml(metaSummary.model)}`,
+      `<br><code>message_id: ${escapeHtml(messageId || "-")}</code>`,
+      `<br><details><summary><strong>Metadados DICOM (todas as tags extraídas)</strong></summary><pre>${escapeHtml(allTagsJson)}</pre></details>`,
     ].join("");
     return box;
   }

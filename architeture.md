@@ -2,125 +2,125 @@
 
 ## Objetivo
 
-O conteúdo de `cloud_page` é o frontend hospedado na nuvem. Ele não recebe DICOM direto. Quem recebe DICOM é o APP local (`agent_app.py` + `api_server.py`). O site em nuvem funciona como interface de trabalho do médico e como cliente do bridge local.
+O conteúdo de `cloud_page` é o frontend hospedado na nuvem. Ele não recebe DICOM diretamente.  
+Quem recebe DICOM é o APP local (`agent_app.py` + `api_server.py`).  
+O site em nuvem funciona como interface do médico e cliente do bridge local.
 
-## Papéis de cada parte
+## Papéis
 
-- `agent_app.py`
-  - Sobe o servidor DICOM local.
-  - Converte imagens para PNG ou SR para HTML.
-  - Guarda tudo em fila em memória.
-  - Sobe o bridge local em `http://127.0.0.1:8099`.
-  - Sobe a API local em `http://127.0.0.1:8787`.
+- APP local (`agent_app.py`)
+  - Sobe DICOM SCP (`0.0.0.0:11112`, AE Title `BABYSUITE`).
+  - Extrai metadados DICOM e converte:
+    - imagem -> PNG
+    - SR -> HTML
+  - Enfileira tudo em memória.
+  - Mantém módulo MWL em background com cache em memória.
+  - Sobe API local (`http://127.0.0.1:8787`).
+  - Sobe bridge estático (`http://127.0.0.1:8099/bridge/index.html`).
 
-- Site em nuvem (`cloud_page`)
-  - Mostra a interface de edição do laudo.
-  - Carrega modelos JSON locais do próprio site.
-  - Recebe imagens e SR do bridge local via `postMessage`.
-  - Envia `ack` para remover itens da fila local.
-  - Publica configurações do site para o APP local.
-  - Pode enviar o conteúdo para IA/n8n.
+- Bridge local (`bridge/bridge.js`)
+  - Lê fila da API local.
+  - Busca payload (`/payload/{message_id}`).
+  - Entrega para o site cloud via `postMessage`.
+  - Recebe `ack`/`settings_update` do site e repassa para API local.
+
+- Site cloud (`cloud_page`)
+  - Carrega interface principal (`index2.html`).
+  - Recebe `dicom_image` e `dicom_sr`.
+  - Mantém imagens/SR em memória para fluxo de laudo, impressão e OCR.
+  - Publica `settings_update` para o APP local.
 
 ## Fluxo principal
 
-1. O APP local recebe um DICOM.
-2. O APP converte o conteúdo para um item de fila:
-   - imagem: PNG
-   - structured report: HTML
-3. O bridge local busca itens na API local.
-4. O bridge local entrega o item para o site em nuvem via `postMessage`.
-5. O site em nuvem processa:
-   - `dicom_image`: salva a imagem em memória para visualização/impressão
-   - `dicom_sr`: salva o SR atual em memória para consulta e uso pela IA
-6. O site responde com `ack`.
-7. O bridge local confirma o `ack` na API local e remove o item da fila.
+1. Ultrassom envia C-STORE para o APP local.
+2. APP local extrai metadados e gera item de fila (`image` ou `sr`).
+3. Bridge local chama `GET /queue/dequeue?n=1`.
+4. Bridge baixa o conteúdo em `GET /payload/{message_id}`.
+5. Bridge envia para o cloud:
+   - `dicom_image` com `png_buffer` + `metadata`
+   - `dicom_sr` com `sr_html` + `metadata`
+6. Site processa e responde `ack`.
+7. Bridge chama `POST /ack` e remove o item da fila.
 
-## APIs locais necessárias para o site funcionar
+## Endpoints locais usados pelo bridge
 
-Base local: `http://127.0.0.1:8787`
+Base: `http://127.0.0.1:8787`
 
 - `GET /heartbeat`
-  - Estado geral do APP, fila, último DICOM, configurações e bridge ativo.
-
 - `GET /queue/dequeue?n=1..20`
-  - Retorna metadados dos próximos itens pendentes.
-
 - `GET /payload/{message_id}`
-  - Retorna o conteúdo do item.
-  - `image/png` para imagem.
-  - `text/html` para SR.
-
-- `POST /ack`
-  - Body: `{ "message_id": "..." }`
-  - Remove da fila um item já entregue.
-
-- `POST /settings`
-  - Body:
-    `{ "MODEL_ACTIVATED": {...}, "ANALISE_CHOICE": {...} }`
-  - Recebe as preferências definidas no site.
-
+- `POST /ack` body `{ "message_id": "..." }`
+- `POST /settings` body `{ "MODEL_ACTIVATED": {...}, "ANALISE_CHOICE": {...} }`
 - `POST /bridge/ping`
-  - Mantém presença do bridge e detecta múltiplos sites abertos.
+- `GET /worklist/config`
+- `POST /worklist/config`
+- `GET /worklist/status`
+- `GET /worklist/items` (retorna cache atual e dispara refresh assíncrono)
+- `GET /worklist/patients` (retorna lista derivada de pacientes e dispara refresh assíncrono)
+- `POST /worklist/refresh`
 
-## Contrato entre site em nuvem e bridge local
+## Contrato de mensagens (cloud <-> bridge)
 
-Origem do bridge local: `http://127.0.0.1:8099`
+Origem bridge: `http://127.0.0.1:8099`
 
-Mensagens recebidas pelo site:
+- Recebidas pelo cloud:
+  - `dicom_image` -> `{ type, message_id, metadata, png_buffer }`
+  - `dicom_sr` -> `{ type, message_id, metadata, sr_html }`
 
-- `dicom_image`
-  - Campos principais:
-    - `message_id`
-    - `metadata`
-    - `png_buffer` (`ArrayBuffer`)
+- Enviadas pelo cloud:
+  - `ack` -> `{ type: "ack", message_id }`
+  - `settings_update` -> `{ type: "settings_update", MODEL_ACTIVATED, ANALISE_CHOICE }`
 
-- `dicom_sr`
-  - Campos principais:
-    - `message_id`
-    - `metadata`
-    - `sr_html`
+## OCR no site
 
-Mensagens enviadas pelo site:
+O OCR roda em iframe interno (`ocrdeveloping/index2.html`) e recebe mensagens encaminhadas por `bridge_client.js`.
 
-- `ack`
-  - `{ type: "ack", message_id }`
+- O campo de metadados do OCR exibe temporariamente o JSON completo de tags recebidas.
+- A escolha de perfil de pré-processamento usa metadados DICOM:
+1. tenta `fabricante + modelo`
+2. se modelo não casar, tenta perfil por `fabricante`
+3. se não casar fabricante, usa `default`
 
-- `settings_update`
-  - `{ type: "settings_update", MODEL_ACTIVATED, ANALISE_CHOICE }`
+Fabricantes reconhecidos por conteúdo textual nas tags: `Samsung`, `Philips`, `Vinno`, `GE`, `Toshiba`, `Canon`, `Esaote`.
 
-## Estrutura do frontend em `cloud_page`
+## Worklist para integração futura do site
 
-- `index.html`
-  - Tela principal com abas de laudo, impressão e ferramentas externas.
+O frontend ainda não exibe controles de MWL, mas a infraestrutura backend já está pronta.
 
-- `script_main.js`
-  - Editor Quill, modelos, frases, prompt e estado de UI.
-  - Mantém globais como `window.modelActivated` e `window.analiseChoice`.
+Fluxo esperado para consumo futuro:
+1. Site chama `GET /worklist/items` ou `GET /worklist/patients`.
+2. API responde imediatamente com o cache em memória atual.
+3. Após responder, o backend dispara atualização MWL em background.
+4. Nova chamada do site já tende a receber cache atualizado.
 
-- `bridge_client.js`
-  - Arquivo central da integração com o APP local.
-  - Recebe `postMessage`, salva imagem/SR, envia `ack` e publica settings.
+## Metadados DICOM relevantes no fluxo
 
-- `script_IA.js`
-  - Envia laudo + prompt + frases + SR atual para webhook externo do n8n/IA.
+Além dos campos básicos, o APP tenta enviar:
+- `Manufacturer` `(0008,0070)`
+- `ManufacturerModelName` `(0008,1090)`
+- `Modality` `(0008,0060)`
+- `CodeMeaning` `(0008,0104)`
+- `StudyDescription` `(0008,1030)`
+- `SeriesDescription` `(0008,103E)`
+- `ProtocolName` `(0018,1030)`
+- `TransducerData` `(0018,5010)`
+- `ProcessingFunction` `(0018,5020)`
+- `SequenceOfUltrasoundRegions` `(0018,6011)`
+- `TransducerType` `(0018,6031)`
+- privadas `0019,xx10` e `0019,xx20` (normalizadas como `PrivateCreator0019` e `PresetName0019`)
 
-- `modelos/*.json`
-  - Templates de laudo usados pelo editor.
+## Estrutura principal do frontend
 
-## Regras de arquitetura
+- `index2.html`: interface principal carregada no iframe cloud.
+- `bridge_client.js`: integração com bridge local, ACK, settings, memória de imagens/SR.
+- `script_main.js`: editor de laudo, modelos, prompt e estado da UI.
+- `script_IA.js`: envio de conteúdo para endpoint de IA/n8n.
+- `ocrdeveloping/index2.html` + `ocrdeveloping/app.js`: pipeline de OCR local no navegador.
 
-- O site em nuvem não deve depender de acesso direto ao DICOM.
-- Toda comunicação com o APP local deve passar pelo bridge local.
-- O frontend deve tratar imagem e SR como dados temporários em memória.
-- O `ack` deve ser enviado somente após o item ser recebido com sucesso.
-- As preferências do usuário no site devem ser refletidas no APP via `settings_update`.
-- A validação de origem é obrigatória nos dois lados do `postMessage`.
+## Regras arquiteturais
 
-## Observação importante
-
-Os arquivos `queue_poller.js` e `print_tab.js` parecem ser legados e não refletem a API atual do APP local. O fluxo compatível com `api_server.py` atual é o usado pelo bridge com:
-
-- `GET /queue/dequeue`
-- `GET /payload/{message_id}`
-- `POST /ack`
-- `POST /settings`
+- O cloud não acessa DICOM diretamente.
+- Toda integração com o APP local passa pelo bridge local.
+- Dados recebidos (`png_buffer`, `sr_html`, metadata) são tratados como temporários em memória.
+- `ack` só deve ser enviado após recebimento/processamento do item.
+- Validação de `origin` no `postMessage` é obrigatória nos dois lados.
