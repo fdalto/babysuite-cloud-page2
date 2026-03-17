@@ -1,7 +1,7 @@
 
 (() => {
   const API_BASE = "http://127.0.0.1:8787";
-  const INTERVAL_MS = 1500; // ajuste fino: 200–600ms costuma ficar ótimo
+  const INTERVAL_MS = 2000; // ajuste de polling para menor frequencia
   const BATCH_N = 20;
 
   // Prefixo usado pelo sender.py (opção B)

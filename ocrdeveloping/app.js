@@ -1507,7 +1507,7 @@
   clearBtnEl?.addEventListener("click", clearTable);
 
   setStatus("Aguardando imagens via postMessage... origem permitida principal: http://127.0.0.1:8099");
-  setInterval(postSettingsUpdate, 1000);
+  setInterval(postSettingsUpdate, 1500);
   window.addEventListener("DOMContentLoaded", () => {
     postSettingsUpdate();
     initOcrWorkerIfNeeded().catch((err) => {
