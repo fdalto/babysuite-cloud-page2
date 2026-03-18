@@ -125,12 +125,22 @@
       },
     ],
   };
+  const OCR_KIND = {
+    LEGEND: "legend",
+    MEASURE: "measure",
+  };
+  const LEGEND_WHITELIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/%-()";
+  const MEASURE_WHITELIST = "0123456789.,%/()- cmx";
+  const BASE_ABBREVIATIONS = ["ANT.", "POST.", "LAT.", "MED."];
+  const MODEL_JSON_DIRECTORY = "../modelos";
+  const MODEL_INDEX_PATH = `${MODEL_JSON_DIRECTORY}/index.json`;
 
   const rowsEl = document.getElementById("rows");
   const statusLineEl = document.getElementById("statusLine");
   const clearBtnEl = document.getElementById("btnClear");
   const preprocessConfigPromise = loadPreprocessConfig();
   const ocrConfigPromise = loadOcrConfig();
+  const legendVocabularyPromise = montarVocabularioDosJson();
   const imageStore = initImageStore();
   const ocrStore = initOcrStore();
   const ocrRuntime = {
@@ -371,55 +381,50 @@
   }
 
   function updateOcrRowUi(result) {
-    const line = ocrRuntime.uiByRoiId[result.roi_id];
-    if (!line) return;
+    const ui = ocrRuntime.uiByRoiId[result.roi_id];
+    if (!ui) return;
+    const line = ui.line;
+    const detail = ui.detail;
     const idx = Number(result.roi_index || 0);
     const idxTag = idx > 0 ? `#${idx}` : result.roi_id;
     const confPct = typeof result.ocr_confidence === "number" ? `${(result.ocr_confidence * 100).toFixed(1)}%` : "--";
+    const kindLabel = result.roi_kind === OCR_KIND.MEASURE ? "medida" : "legenda";
+    line.innerHTML = `<strong>${idxTag}</strong> • ${kindLabel} • conf final: ${confPct}`;
 
     if (result.ocr_status === "pending") {
-      line.textContent = `${idxTag} (pendente): ...`;
-      return;
-    }
-
-    if (result.ocr_status === "filtered_low_conf") {
-      const thresholdPct = `${((result.ocr_min_confidence || DEFAULT_TUNING.ocrMinConfidence) * 100).toFixed(0)}%`;
-      line.textContent = `${idxTag} (${confPct}): [descartado: abaixo de ${thresholdPct}]`;
+      detail.textContent = "Pendente...";
       return;
     }
 
     if (result.ocr_status === "error") {
-      line.textContent = `${idxTag} (${confPct}): [erro OCR]`;
+      detail.textContent = `[erro OCR] ${result.error || "erro desconhecido"}`;
       return;
     }
 
-    const text = String(result.ocr_text_raw || "").trim();
-    line.textContent = `${idxTag} (${confPct}): ${text || "[sem texto]"}`;
+    renderizarComparativoOCR(result, detail);
   }
 
   function applyOcrResult(workerResult) {
     if (!workerResult?.roi_id) return;
     const current = getRoiStoreRecord(workerResult.roi_id) || {};
     const confidence = typeof workerResult.confidence === "number" ? workerResult.confidence : 0;
-    const ocrMinConfidence = Number(current.ocr_min_confidence ?? DEFAULT_TUNING.ocrMinConfidence);
-    const passesConfidence = confidence >= ocrMinConfidence;
     const statusFromWorker = workerResult.status || "error";
-    const finalStatus = statusFromWorker === "done" && !passesConfidence
-      ? "filtered_low_conf"
-      : statusFromWorker;
 
     const merged = {
       ...current,
       roi_id: workerResult.roi_id,
       roi_index: current.roi_index || 0,
       parent_message_id: workerResult.parent_message_id || current.parent_message_id || null,
-      ocr_status: finalStatus,
-      ocr_text_raw: finalStatus === "done" ? (workerResult.text || "") : "",
+      roi_kind: workerResult.roi_kind || current.roi_kind || OCR_KIND.LEGEND,
+      ocr_status: statusFromWorker,
+      ocr_text_raw: statusFromWorker === "done" ? normalizarTextoOCR(workerResult.text || "") : "",
       ocr_confidence: confidence,
-      ocr_min_confidence: ocrMinConfidence,
       model_used: workerResult.model_used || "stub",
       latency_ms: workerResult.latency_ms || 0,
       debug: workerResult.debug || null,
+      ocr_attempts: Array.isArray(workerResult.attempts) ? workerResult.attempts : [],
+      ocr_selected_attempt_id: workerResult.selected_attempt_id || "",
+      ocr_technical_notes: Array.isArray(workerResult.technical_notes) ? workerResult.technical_notes : [],
       error: workerResult.error || "",
       updated_at: Date.now(),
     };
@@ -611,6 +616,188 @@
     } catch (_) {
       return "{}";
     }
+  }
+
+  function normalizarTextoOCR(texto) {
+    return String(texto || "").replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeToken(text) {
+    return String(text || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .trim();
+  }
+
+  function extrairTokensIndividuais(texto) {
+    const semHtml = String(texto || "").replace(/<[^>]+>/g, " ");
+    const tokens = semHtml.match(/[A-Za-zÀ-ÿ0-9]+(?:[./-][A-Za-zÀ-ÿ0-9]+)*/g) || [];
+    return tokens
+      .map((token) => normalizeToken(token))
+      .filter((token) => token.length >= 2);
+  }
+
+  function htmlParaTexto(html) {
+    if (!html) return "";
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(String(html), "text/html");
+    return normalizarTextoOCR(doc.body?.textContent || "");
+  }
+
+  function extrairAbreviacoes(texto) {
+    const matches = String(texto || "").match(/\b[A-Z]{2,6}\./g) || [];
+    return matches.map((abbr) => abbr.trim().toUpperCase());
+  }
+
+  function extrairRotulosNumerados(texto) {
+    const labels = [];
+    const regex = /(?:^|\n)\s*\d+\.\s*([^:\n]+):/g;
+    const clean = String(texto || "");
+    let m = regex.exec(clean);
+    while (m) {
+      labels.push(normalizarTextoOCR(m[1]));
+      m = regex.exec(clean);
+    }
+    return labels.filter(Boolean);
+  }
+
+  function coletarCamposModeloJson(jsonObj) {
+    const fields = {
+      nomes: [],
+      frases: [],
+      modificadoras: [],
+      abreviacoes: [],
+    };
+    const entries = Object.entries(jsonObj && typeof jsonObj === "object" ? jsonObj : {});
+    for (const [key, rawValue] of entries) {
+      const normalizedKey = normalizeToken(key);
+      const isNome = normalizedKey.includes("nomefrase");
+      const isFrase = normalizedKey.includes("frasesdomodelo") || normalizedKey === "frases";
+      const isModificadora = normalizedKey.includes("modificador") || normalizedKey.includes("plavrasmodificadoras");
+      if (!isNome && !isFrase && !isModificadora) continue;
+
+      const arr = Array.isArray(rawValue) ? rawValue : [rawValue];
+      for (const item of arr) {
+        if (typeof item !== "string") continue;
+        const sourceText = isFrase ? htmlParaTexto(item) : normalizarTextoOCR(item);
+        const labels = isFrase ? extrairRotulosNumerados(sourceText) : [];
+        fields.abreviacoes.push(...extrairAbreviacoes(sourceText));
+        if (isNome) fields.nomes.push(sourceText);
+        if (isFrase) {
+          fields.frases.push(sourceText);
+          fields.nomes.push(...labels);
+        }
+        if (isModificadora) fields.modificadoras.push(sourceText);
+      }
+    }
+    return fields;
+  }
+
+  async function montarVocabularioDosJson() {
+    const phraseSet = new Set();
+    const tokenSet = new Set();
+    const abbrevSet = new Set(BASE_ABBREVIATIONS);
+    const sourceFiles = [];
+    const warnings = [];
+    let loadedFiles = 0;
+
+    const addPhrase = (value) => {
+      const clean = normalizarTextoOCR(value);
+      if (!clean) return;
+      phraseSet.add(clean);
+      extrairTokensIndividuais(clean).forEach((t) => tokenSet.add(t));
+      extrairAbreviacoes(clean).forEach((abbr) => abbrevSet.add(abbr));
+    };
+
+    try {
+      const response = await fetch(MODEL_INDEX_PATH, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const modelNames = await response.json();
+      const names = Array.isArray(modelNames) ? modelNames : [];
+
+      for (const modelName of names) {
+        const safeName = String(modelName || "").trim();
+        if (!safeName) continue;
+        const modelPath = `${MODEL_JSON_DIRECTORY}/${safeName}.json`;
+        sourceFiles.push(modelPath);
+        try {
+          const jsonResp = await fetch(modelPath, { cache: "no-store" });
+          if (!jsonResp.ok) {
+            warnings.push(`${modelPath}: HTTP ${jsonResp.status}`);
+            continue;
+          }
+          const payload = await jsonResp.json();
+          const fields = coletarCamposModeloJson(payload);
+          fields.nomes.forEach(addPhrase);
+          fields.modificadoras.forEach(addPhrase);
+          fields.frases.forEach(addPhrase);
+          fields.abreviacoes.forEach((abbr) => abbrevSet.add(abbr));
+          loadedFiles += 1;
+        } catch (err) {
+          warnings.push(`${modelPath}: ${err?.message || err}`);
+        }
+      }
+    } catch (err) {
+      warnings.push(`Falha ao carregar index de modelos (${MODEL_INDEX_PATH}): ${err?.message || err}`);
+    }
+
+    const normalizedAbbreviations = Array.from(abbrevSet)
+      .map((abbr) => normalizarTextoOCR(abbr).toUpperCase())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    const vocabulary = {
+      phrases: Array.from(phraseSet).sort((a, b) => a.localeCompare(b, "pt-BR")),
+      tokens: Array.from(tokenSet).sort((a, b) => a.localeCompare(b, "pt-BR")),
+      abbreviations: normalizedAbbreviations,
+      source_files: sourceFiles,
+      warnings,
+      loaded_files: loadedFiles,
+      prepared_at: Date.now(),
+    };
+
+    window.__OCR_DEV_LEGEND_VOCAB__ = vocabulary;
+    return vocabulary;
+  }
+
+  function montarTentativasOCRLegenda(vocabulario) {
+    // Matriz de teste pedida para box de legenda (A-H).
+    // O worker recebe este plano e tenta aplicar cada parametro real de Tesseract.
+    const userWords = Array.from(
+      new Set([
+        ...(Array.isArray(vocabulario?.tokens) ? vocabulario.tokens : []),
+        ...(Array.isArray(vocabulario?.abbreviations) ? vocabulario.abbreviations : []),
+      ]),
+    ).slice(0, 1500);
+    return [
+      { id: "A", label: "Teste A", psm: "7", mode: "baseline" },
+      { id: "B", label: "Teste B", psm: "13", mode: "baseline" },
+      { id: "C", label: "Teste C", psm: "7", disableSystemDawg: true, disableFreqDawg: true, mode: "no_dawg" },
+      { id: "D", label: "Teste D", psm: "13", disableSystemDawg: true, disableFreqDawg: true, mode: "no_dawg" },
+      { id: "E", label: "Teste E", psm: "7", whitelist: LEGEND_WHITELIST, mode: "whitelist" },
+      { id: "F", label: "Teste F", psm: "13", whitelist: LEGEND_WHITELIST, mode: "whitelist" },
+      { id: "G", label: "Teste G", psm: "7", whitelist: LEGEND_WHITELIST, vocabAware: true, userWords, mode: "vocab_whitelist" },
+      { id: "H", label: "Teste H", psm: "13", whitelist: LEGEND_WHITELIST, vocabAware: true, userWords, mode: "vocab_whitelist" },
+    ];
+  }
+
+  function montarTentativasOCRMedida() {
+    return [
+      {
+        id: "M",
+        label: "Medida",
+        psm: "7",
+        whitelist: MEASURE_WHITELIST,
+        mode: "measure_whitelist",
+      },
+    ];
+  }
+
+  function classificarTipoRoi(roi) {
+    if (roi?.mechanism === "box") return OCR_KIND.MEASURE;
+    return OCR_KIND.LEGEND;
   }
 
   function arrayBufferFromBase64(base64) {
@@ -1269,11 +1456,82 @@
   }
 
   function createOcrResultLine(roiRecord) {
-    const line = document.createElement("div");
-    line.className = "meta";
+    const wrap = document.createElement("section");
+    wrap.className = "ocr-compare-card";
+
+    const header = document.createElement("div");
+    header.className = "ocr-compare-header";
     const idx = Number(roiRecord.roi_index || 0);
-    line.textContent = `${idx > 0 ? `#${idx}` : roiRecord.roi_id} (pendente): ...`;
-    return line;
+    const idxTag = idx > 0 ? `#${idx}` : roiRecord.roi_id;
+    header.innerHTML = `<strong>${idxTag}</strong> • ${roiRecord.roi_kind === OCR_KIND.MEASURE ? "medida" : "legenda"} • pendente`;
+
+    const preview = document.createElement("img");
+    preview.className = "ocr-compare-thumb";
+    const roiImageId = roiRecord.roi_image_id;
+    if (roiImageId && imageStore.items[roiImageId]?.objectUrl) {
+      preview.src = imageStore.items[roiImageId].objectUrl;
+    } else {
+      preview.alt = "ROI";
+    }
+    preview.loading = "lazy";
+    preview.alt = `Crop ${idxTag}`;
+
+    const detail = document.createElement("div");
+    detail.className = "ocr-compare-details";
+    detail.textContent = "Pendente...";
+
+    wrap.appendChild(header);
+    wrap.appendChild(preview);
+    wrap.appendChild(detail);
+    return {
+      root: wrap,
+      line: header,
+      detail,
+    };
+  }
+
+  function renderizarComparativoOCR(roiRecord, mountEl) {
+    const attempts = Array.isArray(roiRecord.ocr_attempts) ? roiRecord.ocr_attempts : [];
+    const finalText = normalizarTextoOCR(roiRecord.ocr_text_raw || "");
+    const finalConf = typeof roiRecord.ocr_confidence === "number" ? `${(roiRecord.ocr_confidence * 100).toFixed(1)}%` : "--";
+    const selectedId = String(roiRecord.ocr_selected_attempt_id || "").trim();
+    const technicalNotes = Array.isArray(roiRecord.ocr_technical_notes) ? roiRecord.ocr_technical_notes : [];
+
+    const tableRows = attempts.map((attempt) => {
+      const conf = typeof attempt.confidence === "number" ? `${(attempt.confidence * 100).toFixed(1)}%` : "--";
+      const rawText = normalizarTextoOCR(attempt.text || "");
+      const psm = attempt.psm || "-";
+      const flags = [];
+      if (attempt.disableSystemDawg) flags.push("no_system_dawg");
+      if (attempt.disableFreqDawg) flags.push("no_freq_dawg");
+      if (attempt.whitelist) flags.push("whitelist");
+      if (attempt.vocabAware) flags.push("vocab");
+      const appliedInfo = attempt.applied_parameters_summary || "";
+      const fallbackInfo = Array.isArray(attempt.fallback_notes) && attempt.fallback_notes.length
+        ? attempt.fallback_notes.join(" | ")
+        : "";
+      const cfg = [flags.join(","), appliedInfo, fallbackInfo].filter(Boolean).join(" | ");
+      const selected = selectedId && selectedId === attempt.id ? " selected" : "";
+      return `<tr class="ocr-attempt-row${selected}">
+        <td>${escapeHtml(attempt.id || "-")}</td>
+        <td>${escapeHtml(psm)}</td>
+        <td>${escapeHtml(conf)}</td>
+        <td>${escapeHtml(cfg || "-")}</td>
+        <td>${escapeHtml(rawText || "[sem texto]")}</td>
+      </tr>`;
+    }).join("");
+
+    const notesHtml = technicalNotes.length
+      ? `<div class="ocr-tech-notes"><strong>Notas técnicas:</strong> ${escapeHtml(technicalNotes.join(" | "))}</div>`
+      : "";
+
+    mountEl.innerHTML = [
+      `<div class="ocr-final-text"><strong>Texto final:</strong> ${escapeHtml(finalText || "[sem texto]")} <span class="ocr-final-conf">(${escapeHtml(finalConf)})</span></div>`,
+      attempts.length
+        ? `<div class="ocr-attempts-wrap"><table class="ocr-attempts-table"><thead><tr><th>Teste</th><th>PSM</th><th>Conf.</th><th>Config</th><th>Texto bruto</th></tr></thead><tbody>${tableRows}</tbody></table></div>`
+        : `<div class="placeholder">Sem tentativas registradas.</div>`,
+      notesHtml,
+    ].join("");
   }
 
   function buildMetaCell(messageId, metaSummary) {
@@ -1320,6 +1578,11 @@
     }
 
     const preprocessConfig = await preprocessConfigPromise;
+    const legendVocabulary = await legendVocabularyPromise;
+    const legendVocabularyAux = {
+      tokens: Array.isArray(legendVocabulary?.tokens) ? legendVocabulary.tokens.slice(0, 2500) : [],
+      abbreviations: Array.isArray(legendVocabulary?.abbreviations) ? legendVocabulary.abbreviations : [],
+    };
     const preprocessProfile = resolvePreprocessProfile(data.metadata, preprocessConfig);
     const decoded = await decodeImage(pngBuffer);
     const parentMessageId = data.message_id || String(Date.now());
@@ -1360,6 +1623,10 @@
       rois.map(async (roi, index) => {
         const roiId = `${parentMessageId}_roi_${index + 1}`;
         const roiImageId = `${roiId}_anonimyzed`;
+        const roiKind = classificarTipoRoi(roi);
+        const ocrPlan = roiKind === OCR_KIND.LEGEND
+          ? montarTentativasOCRLegenda(legendVocabulary)
+          : montarTentativasOCRMedida();
         const roiCanvas = extractRoiCanvas(preprocessed.canvas, roi);
         const roiBlob = await canvasToBlob(roiCanvas, "image/png");
         saveImageVariantToStore(roiImageId, parentMessageId, data.metadata, preprocessProfile, roiBlob);
@@ -1373,15 +1640,19 @@
           roi_image_id: roiImageId,
           roi_box: { x: roi.x, y: roi.y, w: roi.w, h: roi.h },
           roi_area: roi.w * roi.h,
+          roi_kind: roiKind,
+          roi_mechanism: roi.mechanism || "",
           device: {
             manufacturer: preprocessProfile.manufacturer,
             model: preprocessProfile.model,
           },
           crop_profile: preprocessProfile.crop,
-          ocr_min_confidence: Number(preprocessProfile?.tuning?.ocrMinConfidence ?? DEFAULT_TUNING.ocrMinConfidence),
           ocr_status: "pending",
           ocr_text_raw: "",
           ocr_confidence: 0,
+          ocr_attempts: [],
+          ocr_selected_attempt_id: "",
+          ocr_technical_notes: [],
           trigger_flags: [],
           created_at: Date.now(),
         };
@@ -1395,6 +1666,10 @@
           y: roi.y,
           w: roi.w,
           h: roi.h,
+          roi_kind: roiKind,
+          roi_mechanism: roi.mechanism || "",
+          ocr_plan: ocrPlan,
+          vocabulary_aux: roiKind === OCR_KIND.LEGEND ? legendVocabularyAux : null,
           image_blob: roiBlob,
         };
       }),
@@ -1438,7 +1713,7 @@
         const record = getRoiStoreRecord(item.roi_id) || { roi_id: item.roi_id };
         const line = createOcrResultLine(record);
         ocrRuntime.uiByRoiId[item.roi_id] = line;
-        tdOcr.appendChild(line);
+        tdOcr.appendChild(line.root);
       });
     }
 
@@ -1457,7 +1732,10 @@
     state.lastMessageId = parentMessageId;
     state.lastMetadata = data.metadata || null;
 
-    setStatus(`Total: ${state.total} imagem(ns) processadas | Última: ${state.lastMessageId || "sem id"} | Perfil: ${preprocessProfile.manufacturer} ${preprocessProfile.model} | ROIs: ${rois.length}`);
+    const vocabInfo = legendVocabulary?.loaded_files
+      ? ` | Vocab JSON: ${legendVocabulary.loaded_files} arquivo(s)`
+      : "";
+    setStatus(`Total: ${state.total} imagem(ns) processadas | Última: ${state.lastMessageId || "sem id"} | Perfil: ${preprocessProfile.manufacturer} ${preprocessProfile.model} | ROIs: ${rois.length}${vocabInfo}`);
     if (roiDescriptors.length) {
       enqueueOcrJob({
         parentMessageId,

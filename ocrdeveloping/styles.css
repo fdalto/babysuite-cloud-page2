@@ -160,6 +160,75 @@ th {
   margin-top: 4px;
 }
 
+.ocr-compare-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  margin-top: 8px;
+  background: #f9fcff;
+}
+
+.ocr-compare-header {
+  font-size: 12px;
+  color: var(--title);
+  margin-bottom: 6px;
+}
+
+.ocr-compare-thumb {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+  border: 1px solid #d2dbe8;
+  background: #0f1726;
+  margin-bottom: 8px;
+}
+
+.ocr-compare-details {
+  font-size: 12px;
+}
+
+.ocr-attempts-wrap {
+  overflow: auto;
+}
+
+.ocr-attempts-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 620px;
+}
+
+.ocr-attempts-table th,
+.ocr-attempts-table td {
+  border: 1px solid #d8deea;
+  padding: 6px;
+  font-size: 11px;
+  vertical-align: top;
+}
+
+.ocr-attempts-table th {
+  background: #edf4ff;
+  color: #122b49;
+}
+
+.ocr-attempt-row.selected {
+  background: #e6faf7;
+}
+
+.ocr-final-text {
+  margin-bottom: 6px;
+}
+
+.ocr-final-conf {
+  color: var(--muted);
+}
+
+.ocr-tech-notes {
+  margin-top: 6px;
+  color: #495f7a;
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .topbar {
     align-items: flex-start;
