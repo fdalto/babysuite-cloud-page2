@@ -28,10 +28,13 @@ Disponibilizar um ambiente isolado para:
 2. Decodifica a imagem e lê metadados DICOM.
 3. Resolve perfil por fabricante/modelo.
 4. Aplica crop por perfil (`[left, top, right]`).
-5. Detecta ROIs no resultado cropado.
-6. Salva variantes de imagem em memória (original/crop/ROI).
-7. Envia ROIs em lote para worker OCR.
-8. Atualiza tabela com resultado OCR por ROI e consolida OCR final por imagem.
+5. Remove borda preta superior quando presente (até 5 px).
+6. Detecta ROIs no resultado cropado.
+7. Limpa verde de borda dos boxes detectados.
+8. Aplica ajuste vertical (vtrim), filtro `txt >= 10%` e expansão de margem final.
+9. Salva variantes de imagem em memória (original/crop/ROI).
+10. Envia ROIs em lote para worker OCR.
+11. Consolida texto por imagem apenas ao terminar todos os ROIs.
 
 ## Perfis por equipamento (JSON)
 
@@ -63,11 +66,12 @@ Atualmente os seguintes grupos são configuráveis por profile:
 
 - crop por perfil
 - Faixas HSV/chroma para texto colorido
+- Faixas HSV dedicadas ao `box_yellow`
 - Critério de cinza para borda
 - Contraste mínimo para pixel de borda cinza
 - Dilatação de máscara de cor
 - Filtros geométricos e densidade
-- Confiança mínima global OCR (`ocrMinConfidence`)
+- parâmetros de merge e padding dos ROIs
 
 ## Detecção de ROI
 
@@ -76,18 +80,25 @@ A detecção combina:
 1. `box`
 - busca contornos retangulares cinza
 - valida texto colorido no interior
+- aceita borda cinza ou verde
+- merge de boxes próximos ativo
 
-2. `color_pipeline`
+2. `box_yellow`
+- detecta componentes amarelos com thresholds dedicados
+- não detecta dentro da máscara de `box`
+
+3. `color_pipeline`
 - máscara HSV
 - dilatação horizontal/vertical
 - connected components
-- merge de boxes
+- merge horizontal de candidatos colados (eixo x)
 - filtros geométricos/densidade
 
 Ordem de execução:
 
 - `box` primeiro
-- gera máscara negativa dessas áreas
+- depois `box_yellow` (bloqueado por máscara de `box`)
+- gera máscara negativa de `box + box_yellow`
 - roda `color_pipeline` fora dessa máscara
 
 ## OCR atual
@@ -100,21 +111,19 @@ Ordem de execução:
 
 ### Variações
 
-- atualmente configurado para `normal` (sem inversão)
-- pode-se habilitar variantes no config (`normal`, `invert`)
+- tentativa ativa no app: `saturation_invert` (`PSM 6`)
 
 ### Filtro de confiança
 
-- resultado com confiança abaixo de `ocrMinConfidence` do perfil é descartado
-- status interno: `filtered_low_conf`
+- no worker, resultado final com `conf < 50%` é descartado (texto final vazio)
+- nota técnica de descarte é adicionada no resultado
 
 ## Formato de saída na UI
 
 No painel "Resultado OCR":
 
-- formato: `#n (conf%): texto`
-- sem exibir numeração técnica de ROI id
-- sem exibir confidence em resultados descartados como texto final
+- cada ROI mostra comparativo das tentativas e texto final selecionado
+- resultado consolidado por imagem é uma linha única, ordenada por leitura natural
 
 ## Armazenamento em memória
 
@@ -160,12 +169,16 @@ Para cada imagem mãe, também é salvo:
 
 `text_line` é uma string única (uma linha), sem quebra, contendo apenas textos OCR aceitos.
 
+Regras da consolidação:
+- só consolida quando todos os ROIs da imagem estão em estado terminal
+- ordena por leitura natural:
+  - primeiro por linha (`y`, com tolerância por altura)
+  - depois por coluna (`x`)
+
 ## Interface
 
 - Coluna da tabela: `Resultado OCR`
-- Não exibe mais `"(futuro)"`
-- Não exibe `"Pré-processamento: crop"`
-- Não exibe `id crop`
+- Não exibe blocos de debug/split de linha de `box_vtrim`
 - Exibe origem do perfil (`metadado` ou "modelo não identificado, usando Default")
 
 ## Comunicação com site pai

@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR ROI Browser-Only</title>
+  <link rel="stylesheet" href="script/site.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Ultrassom OCR</p>
+        <h1>ROI OCR no navegador</h1>
+        <p class="intro">
+          Esta página roda <code>det.onnx</code> e <code>rec.onnx</code> no browser com
+          <code>onnxruntime-web</code>. Use ROIs já extraídas do bloco de medidas.
+        </p>
+      </div>
+      <div class="controls">
+        <label class="field">
+          <span>Imagem local</span>
+          <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp">
+        </label>
+        <label class="field">
+          <span>Amostra</span>
+          <select id="sampleSelect">
+            <option value="">Selecione uma amostra</option>
+            <option value="test_data/crop1.png">crop1.png</option>
+            <option value="test_data/crop2.png">crop2.png</option>
+            <option value="test_data/crop3.png">crop3.png</option>
+            <option value="test_data/1.png">1.png</option>
+            <option value="test_data/2.png">2.png</option>
+            <option value="test_data/3.png">3.png</option>
+          </select>
+        </label>
+        <button id="runBrowserButton">Processar no navegador</button>
+      </div>
+      <p id="browserStatus" class="status">
+        Sirva esta pasta por HTTP estático. Ex.: <code>python -m http.server 8000</code>
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Bloco reescrito</h2>
+        <div id="browserStats" class="stats"></div>
+      </div>
+      <pre id="browserPlainText" class="plain-text-block">Nenhum resultado ainda.</pre>
+      <div id="browserStructured" class="structured-grid empty">Nenhuma medida ainda.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Etapas</h2>
+      </div>
+      <div id="browserSteps" class="steps-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Detecções</h2>
+      </div>
+      <div id="browserDetections" class="detections-list"></div>
+    </section>
+  </main>
+
+  <template id="browserStepCardTemplate">
+    <article class="step-card">
+      <h3></h3>
+      <img alt="">
+    </article>
+  </template>
+
+  <template id="browserDetectionTemplate">
+    <article class="detection-card">
+      <div class="detection-header">
+        <h3></h3>
+        <span class="pill"></span>
+      </div>
+      <div class="detection-grid">
+        <div class="image-stack"></div>
+        <div class="detection-info">
+          <div class="recognition-summary"></div>
+          <table class="attempts-table">
+            <thead>
+              <tr>
+                <th>Variante</th>
+                <th>Modo</th>
+                <th>Texto</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="script/browser_ocr.js"></script>
+</body>
+</html>

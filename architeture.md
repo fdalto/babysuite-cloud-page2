@@ -80,6 +80,8 @@ O OCR roda em iframe interno (`ocrdeveloping/index2.html`) e recebe mensagens en
 1. tenta `fabricante + modelo`
 2. se modelo não casar, tenta perfil por `fabricante`
 3. se não casar fabricante, usa `default`
+- O texto OCR consolidado é gerado por imagem (uma linha única) somente após finalizar todos os ROIs da imagem.
+- A ordem da linha consolidada segue leitura natural dos boxes (linha por `y`, depois `x`).
 
 Fabricantes reconhecidos por conteúdo textual nas tags: `Samsung`, `Philips`, `Vinno`, `GE`, `Toshiba`, `Canon`, `Esaote`.
 

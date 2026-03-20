@@ -1,0 +1,140 @@
+{
+  "replacements": [
+    {
+      "match": "DProx",
+      "replace": "Direita Proximal "
+    },
+    {
+      "match": "EProx",
+      "replace": "Esquerda Proximal "
+    },
+    {
+      "match": "ACITMmax",
+      "replace": "Art. Carotida interna Tmax"
+    },
+    {
+      "match": "ACIIP",
+      "replace": "Art. Carotida interna IP"
+    },
+    {
+      "match": "ACIIR",
+      "replace": "Art. Carotida interna IR"
+    },
+    {
+      "match": "ACIPS",
+      "replace": "Art. Carotida interna PS"
+    },
+    {
+      "match": "ACIDF",
+      "replace": "Art. Carotida interna DF"
+    },
+    {
+      "match": "ACITMmed",
+      "replace": "Art. Carotida interna TMmed"
+    },
+    {
+      "match": "ACISP/DF",
+      "replace": "Art. Carotida interna SP/DF"
+    },
+    {
+      "match": "ACIDF/PS",
+      "replace": "Art. Carotida interna DF/PS"
+    },
+    {
+      "match": "ACETMmax",
+      "replace": "Art. Carotida externa Tmax"
+    },
+    {
+      "match": "ACEIP",
+      "replace": "Art. Carotida externa IP"
+    },
+    {
+      "match": "ACEIR",
+      "replace": "Art. Carotida externa IR"
+    },
+    {
+      "match": "ACEPS",
+      "replace": "Art. Carotida externa PS"
+    },
+    {
+      "match": "ACEDF",
+      "replace": "Art. Carotida externa DF"
+    },
+    {
+      "match": "ACETMmed",
+      "replace": "Art. Carotida externa TMmed"
+    },
+    {
+      "match": "ACESP/DF",
+      "replace": "Art. Carotida externa SP/DF"
+    },
+    {
+      "match": "ACEDF/PS",
+      "replace": "Art. Carotida externa DF/PS"
+    },
+    {
+      "match": "ACCTMmax",
+      "replace": "Art. Carotida comum Tmax"
+    },
+    {
+      "match": "ACCIP",
+      "replace": "Art. Carotida comum IP"
+    },
+    {
+      "match": "ACCIR",
+      "replace": "Art. Carotida comum IR"
+    },
+    {
+      "match": "ACCPS",
+      "replace": "Art. Carotida comum PS"
+    },
+    {
+      "match": "ACCDF",
+      "replace": "Art. Carotida comum DF"
+    },
+    {
+      "match": "ACCTMmed",
+      "replace": "Art. Carotida comum TMmed"
+    },
+    {
+      "match": "ACCSP/DF",
+      "replace": "Art. Carotida comum SP/DF"
+    },
+    {
+      "match": "ACCDF/PS",
+      "replace": "Art. Carotida comum DF/PS"
+    },
+    {
+      "match": "AVTMmax",
+      "replace": "Art. vertebral Tmax"
+    },
+    {
+      "match": "AVIP",
+      "replace": "Art. vertebral IP"
+    },
+    {
+      "match": "AVIR",
+      "replace": "Art. vertebral IR"
+    },
+    {
+      "match": "AVPS",
+      "replace": "Art. vertebral PS"
+    },
+    {
+      "match": "AVDF",
+      "replace": "Art. vertebral DF"
+    },
+    {
+      "match": "AVTMmed",
+      "replace": "Art. vertebral TMmed"
+    },
+    {
+      "match": "AVSP/DF",
+      "replace": "Art. vertebral SP/DF"
+    },
+    {
+      "match": "AVDF/PS",
+      "replace": "Art. vertebral DF/PS"
+    }
+  ]
+}

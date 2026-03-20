@@ -63,8 +63,31 @@
     }
   }
 
+  function normalizeOcrPromptBlock(text) {
+    return String(text || "")
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .map((line) => line.replace(/[ \t]+/g, " ").trim())
+      .join("\n")
+      .replace(/-(\d{1,2}\.\d{1,2}\s*cm\/s)\b/g, "$1")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  function renderPromptFromOcrState() {
+    const promptState = window.__OCR_PROMPT_LINES__;
+    const blocks = promptState.order
+      .map((messageId) => normalizeOcrPromptBlock(promptState.byMessageId[messageId] || ""))
+      .filter(Boolean);
+
+    const combined = blocks.join("\n\n");
+    const promptEl = document.getElementById("campoPrompt");
+    if (!promptEl) return;
+    promptEl.value = combined;
+  }
+
   function upsertPromptLine(messageId, textLine) {
-    const line = String(textLine || "").replace(/\s+/g, " ").trim();
+    const line = normalizeOcrPromptBlock(textLine);
     if (!messageId || !line) return;
 
     const promptState = window.__OCR_PROMPT_LINES__;
@@ -74,16 +97,7 @@
     }
     if (prev === line) return;
     promptState.byMessageId[messageId] = line;
-
-    if (typeof window.appendPromptLineToEnd === "function") {
-      window.appendPromptLineToEnd(line);
-      return;
-    }
-
-    const promptEl = document.getElementById("campoPrompt");
-    if (!promptEl) return;
-    const current = String(promptEl.value || "").replace(/\r\n/g, "\n");
-    promptEl.value = current.trim() ? `${current}\n${line}` : line;
+    renderPromptFromOcrState();
   }
 
   function handleLocalOcrResult(payload) {
@@ -91,7 +105,7 @@
     const messageId = p.message_id || "";
     if (!messageId) return;
 
-    const textLine = String(p.ocr_text_line || "").replace(/\s+/g, " ").trim();
+    const textLine = normalizeOcrPromptBlock(p.ocr_text_line || "");
     if (!textLine) return;
 
     window.__OCR_RESULTS_BY_MESSAGE_ID__[messageId] = {

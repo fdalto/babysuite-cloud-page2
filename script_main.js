@@ -244,11 +244,17 @@ function insertNewLineAtLastCursor(text){
 function appendPromptLineToEnd(text){
   const t = getPromptEl();
   if (!t) return;
-  const line = String(text || "").replace(/\s+/g, " ").trim();
+  const line = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((part) => part.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!line) return;
 
   const value = t.value.replace(/\r\n/g, "\n");
-  const nextValue = value.trim() ? `${value}\n${line}` : line;
+  const nextValue = value.trim() ? `${value}\n\n${line}` : line;
   t.value = nextValue;
   const end = nextValue.length;
   t.selectionStart = t.selectionEnd = end;

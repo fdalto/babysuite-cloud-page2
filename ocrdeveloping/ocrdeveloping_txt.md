@@ -2,7 +2,8 @@
 
 ## Objetivo geral
 
-Este documento descreve o conceito inicial de um projeto experimental para processamento de imagens no navegador com foco em detecção de regiões candidatas a OCR.
+Este documento descreve o conceito inicial do laboratório OCR em navegador.
+Hoje ele é mantido como referência histórica.
 
 A ideia é construir um ambiente de desenvolvimento isolado que permita testar o fluxo completo de:
 
@@ -11,8 +12,13 @@ A ideia é construir um ambiente de desenvolvimento isolado que permita testar o
 3. Detecção de regiões candidatas
 4. Recorte das ROIs
 5. Preparação para OCR
+6. OCR em worker e consolidação por imagem
 
-O objetivo inicial **não é implementar o OCR completo**, mas sim validar a arquitetura de captura e preparação das imagens.
+Status atual (implementado):
+- detecção de ROI (`box`, `box_yellow`, `color_pipeline`)
+- OCR via `Tesseract.js` em worker
+- filtro por confiança mínima final
+- consolidação de 1 linha por imagem, ordenada por leitura natural
 
 ---
 
@@ -165,9 +171,9 @@ Após validar o recebimento das imagens e a detecção das regiões candidatas, 
 
 1. Integração com OpenCV.js para segmentação mais robusta
 2. Implementação da normalização das ROIs
-3. Integração com PaddleOCR
-4. Execução do modelo via ONNX Runtime Web
-5. Pós-processamento do texto reconhecido
+3. Avaliar integração com PaddleOCR
+4. Avaliar execução de modelo via ONNX Runtime Web
+5. Melhorar pós-processamento do texto reconhecido
 
 ---
 
@@ -184,4 +190,3 @@ Criar um pipeline de OCR totalmente executado no navegador capaz de:
 Tudo isso **sem enviar as imagens para servidores externos**.
 
 Este projeto será usado inicialmente como **plataforma de experimentação** para testar diferentes técnicas de detecção e OCR.
-

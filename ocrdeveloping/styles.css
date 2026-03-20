@@ -188,6 +188,43 @@ th {
   font-size: 12px;
 }
 
+.ocr-attempt-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ocr-attempt-card {
+  border: 1px solid #d8deea;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.ocr-attempt-card.selected {
+  background: #e6faf7;
+  border-color: #9cd8cd;
+}
+
+.ocr-attempt-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #11233d;
+  margin-bottom: 6px;
+}
+
+.ocr-attempt-meta {
+  font-size: 11px;
+  color: #405771;
+  margin-bottom: 4px;
+}
+
+.ocr-attempt-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f2239;
+}
+
 .ocr-attempts-wrap {
   overflow: auto;
 }
@@ -236,5 +273,9 @@ th {
 
   .panel__header h1 {
     font-size: 18px;
+  }
+
+  .ocr-attempt-cards {
+    grid-template-columns: 1fr;
   }
 }

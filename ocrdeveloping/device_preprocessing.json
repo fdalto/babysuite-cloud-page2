@@ -13,9 +13,14 @@
         "hueYellowMin": 30,
         "hueYellowMax": 80,
         "satYellowMin": 0.28,
-        "hueOrangeMin": 12,
-        "hueOrangeMax": 50,
-        "satOrangeMin": 0.28,
+        "boxYellowHueMin": 54,
+        "boxYellowHueMax": 86,
+        "boxYellowSatMin": 0.0785,
+        "boxYellowValueMin": 0.392,
+        "hueOrangeMin": 24,
+        "hueOrangeMax": 48,
+        "satOrangeMin": 0.6275,
+        "orangeValueMin": 0.6275,
         "valueMin": 0.2,
         "chromaMin": 24,
         "strongAlphaMin": 28,
@@ -25,9 +30,10 @@
         "strongHueYellowMin": 32,
         "strongHueYellowMax": 74,
         "strongSatYellowMin": 0.4,
-        "strongHueOrangeMin": 14,
-        "strongHueOrangeMax": 45,
-        "strongSatOrangeMin": 0.4,
+        "strongHueOrangeMin": 24,
+        "strongHueOrangeMax": 48,
+        "strongSatOrangeMin": 0.6275,
+        "strongOrangeValueMin": 0.6275,
         "strongValueMin": 0.22,
         "strongChromaMin": 34
       },
@@ -43,14 +49,15 @@
         "hRadiusMin": 3,
         "hRadiusMax": 12,
         "hRadiusDiv": 180,
-        "vRadiusMin": 1,
-        "vRadiusMax": 3,
-        "vRadiusDiv": 600,
+        "vRadiusMin": 0,
+        "vRadiusMax": 1,
+        "vRadiusDiv": 1200,
         "mergeGapMin": 8,
         "mergeGapMax": 26,
         "mergeGapDiv": 140
       },
       "geometry": {
+        "boxLineHeightPx": 40,
         "boxMinW": 60,
         "boxMinH": 18,
         "boxMinArea": 3000,
@@ -72,10 +79,10 @@
         "colorCompMinH": 8,
         "colorCompMinArea": 300,
         "colorCompMinAspect": 1.2,
-        "colorRoiPadXMin": 7,
-        "colorRoiPadXRatio": 0.147,
-        "colorRoiPadYMin": 12,
-        "colorRoiPadYRatio": 0.95,
+        "colorRoiPadXMin": 5,
+        "colorRoiPadXRatio": 0.096,
+        "colorRoiPadYMin": 2,
+        "colorRoiPadYRatio": 0.12,
         "colorRoiMinW": 72,
         "colorRoiMinH": 16,
         "colorRoiMinArea": 2200,
@@ -95,7 +102,12 @@
     {
       "manufacturer": "Samsung",
       "model": "HS40",
-      "crop": [140, 55, 5]
+      "crop": [140, 55, 5],
+      "tuning": {
+        "geometry": {
+          "boxLineHeightPx": 40
+        }
+      }
     },
     {
       "manufacturer": "GE",
@@ -106,11 +118,12 @@
         "color": {
           "satGreenMin": 0.24,
           "satYellowMin": 0.25,
-          "satOrangeMin": 0.25
+          "satOrangeMin": 0.6275,
+          "orangeValueMin": 0.6275
         },
         "geometry": {
           "colorTextDensityMin": 0.05,
-          "colorRoiPadXRatio": 0.12
+          "colorRoiPadXRatio": 0.078
         }
       }
     }
