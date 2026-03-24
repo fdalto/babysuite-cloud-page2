@@ -3,157 +3,666 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cloud Test Worklist</title>
+  <title>BabySuite Worklist</title>
+  <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --line: #dbe2ea;
-      --btn: #1d4ed8;
-      --ok: #0f766e;
-      --err: #b91c1c;
+      --wk-ok: #18a957;
+      --wk-off: #9aa7b8;
+      --wk-warn: #db8b2a;
+      --wk-bg: linear-gradient(180deg, #f8fbff, #eef4ff);
+      --wk-card-border: rgba(15, 23, 42, 0.08);
+      --wk-card-shadow: 0 14px 28px rgba(16, 24, 40, 0.08);
+      --wk-muted: #63758f;
+      --wk-text: #172a43;
+      --wk-highlight: #7b529f;
+      --wk-highlight-soft: rgba(123, 82, 159, 0.1);
+      --wk-success-soft: rgba(95, 198, 200, 0.16);
     }
 
-    * { box-sizing: border-box; }
-    body {
+    body.worklist-body {
       margin: 0;
-      padding: 12px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Segoe UI", Arial, sans-serif;
+      min-height: 100vh;
+      color: var(--wk-text);
+      background: var(--wk-bg);
+      display: flex;
+      flex-direction: column;
     }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
+
+    .worklist-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    input[type="text"] {
-      flex: 1;
-      min-width: 220px;
-      padding: 8px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-    button {
-      border: 0;
-      border-radius: 8px;
-      background: var(--btn);
-      color: #fff;
-      font-weight: 600;
+
+    .worklist-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       padding: 8px 12px;
-      cursor: pointer;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--wk-muted);
+      font-size: 13px;
+      font-weight: 700;
     }
-    .small { font-size: 12px; color: var(--muted); }
-    .status.ok { color: var(--ok); }
-    .status.err { color: var(--err); }
-    #list {
-      max-height: 220px;
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--wk-off);
+      box-shadow: 0 0 0 5px rgba(154, 167, 184, 0.18);
+      transition: background 120ms ease, box-shadow 120ms ease;
+      flex: 0 0 10px;
+    }
+
+    .worklist-status[data-state="connected"] .status-dot {
+      background: var(--wk-ok);
+      box-shadow: 0 0 0 5px rgba(24, 169, 87, 0.16);
+    }
+
+    .worklist-status[data-state="stale"] .status-dot {
+      background: var(--wk-warn);
+      box-shadow: 0 0 0 5px rgba(219, 139, 42, 0.16);
+    }
+
+    .worklist-status[data-state="disconnected"] .status-dot,
+    .worklist-status[data-state="error"] .status-dot {
+      background: var(--wk-off);
+      box-shadow: 0 0 0 5px rgba(154, 167, 184, 0.2);
+    }
+
+    .worklist-stage {
+      width: min(1240px, calc(100% - 28px));
+      margin: 14px auto 0;
+      display: grid;
+      grid-template-columns: minmax(300px, 0.95fr) minmax(430px, 1.45fr);
+      gap: 16px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .worklist-card {
+      border: 1px solid var(--wk-card-border);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--wk-card-shadow);
+      overflow: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .worklist-card-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(140deg, rgba(123, 82, 159, 0.08), rgba(95, 198, 200, 0.09));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .worklist-card-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      color: var(--wk-highlight);
+    }
+
+    .worklist-card-subtitle {
+      margin: 0;
+      font-size: 12px;
+      color: var(--wk-muted);
+      font-weight: 600;
+    }
+
+    .worklist-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .worklist-search input {
+      width: 100%;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      padding: 0 14px;
+      outline: none;
+      font-size: 14px;
+      color: var(--wk-text);
+      background: #ffffff;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .worklist-search input:focus {
+      border-color: rgba(95, 198, 200, 0.9);
+      box-shadow: 0 0 0 4px rgba(95, 198, 200, 0.18);
+    }
+
+    .worklist-list {
+      padding: 10px 8px;
       overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      min-height: 240px;
+      flex: 1;
     }
-    .item {
-      padding: 8px;
-      border-bottom: 1px solid var(--line);
+
+    .worklist-item {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 0 8px 8px;
+      background: #fff;
       cursor: pointer;
+      transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+      text-align: left;
     }
-    .item:hover { background: #eef2ff; }
-    .item.active { background: #dbeafe; }
-    #headerView {
-      white-space: pre-wrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    .worklist-item:hover {
+      border-color: rgba(123, 82, 159, 0.28);
+      transform: translateY(-1px);
+      background: #fcfbff;
+    }
+
+    .worklist-item.active {
+      border-color: rgba(123, 82, 159, 0.6);
+      background: var(--wk-highlight-soft);
+    }
+
+    .worklist-item-name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #1d2f48;
+    }
+
+    .worklist-item-exam {
+      margin: 5px 0 0;
+      font-size: 13px;
+      color: var(--wk-muted);
+    }
+
+    .worklist-empty {
+      margin: 24px 14px;
+      border: 1px dashed rgba(15, 23, 42, 0.16);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      color: var(--wk-muted);
+      font-size: 13px;
+      background: rgba(95, 198, 200, 0.08);
+    }
+
+    .ia-shell {
+      display: grid;
+      grid-template-rows: auto auto minmax(180px, 1fr) auto auto;
+      gap: 12px;
+      padding: 14px 16px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .patient-context {
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: var(--wk-success-soft);
+      font-size: 13px;
+      line-height: 1.45;
+      color: #254160;
+    }
+
+    .patient-context strong {
+      color: var(--wk-highlight);
+    }
+
+    .ai-box {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 14px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .robot-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 110px;
+      margin: 0 auto;
+    }
+
+    #robotImg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #robotMouth {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: 10%;
+      height: 4%;
+      transform: translateX(-50%);
+      background: #333;
+      border-radius: 30% 30% 60% 60%;
+      transition: all 0.1s ease-out;
+      pointer-events: none;
+    }
+
+    #robotMouth.open {
+      height: 6%;
+      border-radius: 30% 30% 80% 80%;
+    }
+
+    .ai-box-info {
+      display: grid;
+      gap: 8px;
+    }
+
+    .phase-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #7b529f, #5fc6c8);
+    }
+
+    .phase-note {
+      margin: 0;
+      color: var(--wk-muted);
       font-size: 12px;
     }
-    #log {
+
+    .ai-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-ai {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: #fff;
+      color: var(--wk-text);
+      border-radius: 10px;
+      height: 36px;
+      padding: 0 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-ai.primary {
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, #7b529f, #5fc6c8);
+      box-shadow: 0 8px 16px rgba(123, 82, 159, 0.22);
+    }
+
+    .btn-ai.success {
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, #0f9a56, #5fc6c8);
+      box-shadow: 0 8px 16px rgba(15, 154, 86, 0.2);
+    }
+
+    .btn-ai.mic-listening {
+      background: #cc1f1f;
+      color: #fff;
+      border-color: #cc1f1f;
+    }
+
+    .conversation-scroll {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 12px;
+      min-height: 220px;
+      max-height: 340px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .msg {
+      margin: 0 0 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .msg.user {
+      background: rgba(95, 198, 200, 0.14);
+      border: 1px solid rgba(95, 198, 200, 0.26);
+    }
+
+    .msg.bot {
+      background: rgba(123, 82, 159, 0.11);
+      border: 1px solid rgba(123, 82, 159, 0.25);
+    }
+
+    .result-panel {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 14px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .result-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--wk-muted);
+    }
+
+    .result-preview {
+      min-height: 90px;
       max-height: 180px;
       overflow: auto;
-      white-space: pre-wrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      background: #f7fafe;
     }
-    textarea {
+
+    #finalText {
       width: 100%;
-      min-height: 180px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 8px;
+      min-height: 150px;
       resize: vertical;
-      font-family: inherit;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--wk-text);
+      background: #fff;
+    }
+
+    .worklist-footer {
+      width: min(1240px, calc(100% - 28px));
+      margin: 10px auto 14px;
+    }
+
+    .worklist-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--wk-muted);
+      font-size: 12px;
+      padding: 0 2px;
+    }
+
+    .btn-debug {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--wk-text);
+      border-radius: 10px;
+      height: 34px;
+      padding: 0 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .debug-panel {
+      margin-top: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      overflow: hidden;
+    }
+
+    .debug-panel[hidden] {
+      display: none;
+    }
+
+    .debug-head {
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--wk-muted);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .debug-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: 160px;
+    }
+
+    .debug-col {
+      padding: 12px;
+      min-height: 160px;
+      overflow: auto;
+      border-right: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .debug-col:last-child {
+      border-right: 0;
+    }
+
+    .debug-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--wk-muted);
+    }
+
+    .debug-pre,
+    .debug-log {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #23344c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    @media (max-width: 980px) {
+      .worklist-stage {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-box {
+        grid-template-columns: 1fr;
+      }
+
+      .robot-wrap {
+        max-width: 86px;
+      }
+
+      .conversation-scroll {
+        max-height: 280px;
+      }
+
+      .debug-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .debug-col {
+        border-right: 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .debug-col:last-child {
+        border-bottom: 0;
+      }
     }
   </style>
 </head>
-<body>
-  <div class="card">
-    <div class="row">
-      <strong>Cloud Test Worklist</strong>
-      <span id="status" class="status small">Aguardando WORKLIST_DATA...</span>
+<body class="worklist-body">
+  <header class="topbar worklist-topbar">
+    <div class="topbar-left">
+      <div class="brand">BabySuite - Worklist</div>
     </div>
-    <div class="small">Origem bridge esperada: `http://*:8099` (localhost, IP ou .local)</div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <input id="searchInput" type="text" placeholder="Buscar paciente/exame..." />
+    <div class="worklist-status" id="connectionStatus" data-state="disconnected" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span id="statusText">Aguardando dados</span>
     </div>
-    <div class="small">Itens recebidos: <span id="count">0</span></div>
-    <div id="list"></div>
-  </div>
+  </header>
 
-  <div class="card">
-    <div><strong>Cabeçalho normalizado</strong></div>
-    <div id="headerView" class="small"></div>
-  </div>
+  <main class="worklist-stage">
+    <section class="worklist-card" aria-label="Lista de exames">
+      <div class="worklist-card-header">
+        <h1 class="worklist-card-title">Worklist</h1>
+        <p class="worklist-card-subtitle"><span id="itemsCount">0</span> item(ns)</p>
+      </div>
+      <div class="worklist-search">
+        <input id="searchInput" type="text" placeholder="Buscar paciente ou exame..." autocomplete="off" />
+      </div>
+      <div class="worklist-list" id="itemsList"></div>
+    </section>
 
-  <div class="card">
-    <div><strong>Texto</strong></div>
-    <textarea id="textInput" placeholder="Digite aqui..."></textarea>
-    <div class="row" style="margin-top:8px;">
-      <button id="btnFinalize" type="button">Finalizar</button>
+    <section class="worklist-card" aria-label="Anamnese por IA">
+      <div class="worklist-card-header">
+        <h2 class="worklist-card-title">Evolucao / Anamnese IA</h2>
+        <p class="worklist-card-subtitle" id="editorState">Selecione um paciente</p>
+      </div>
+
+      <div class="ia-shell">
+        <div class="patient-context" id="patientContext">Aguardando selecao de paciente na lista.</div>
+
+        <div class="ai-box">
+          <div class="robot-wrap">
+            <img id="robotImg" src="./robo.png" alt="Robo" />
+            <div id="robotMouth"></div>
+          </div>
+          <div class="ai-box-info">
+            <span class="phase-pill" id="phasePill">Fase 1 - Anamnese Inicial</span>
+            <p class="phase-note" id="phaseNote">Fluxo em 3 fases unificadas em uma unica pagina.</p>
+            <div class="ai-actions">
+              <button class="btn-ai primary" id="btnStartFlow" type="button">Iniciar</button>
+              <button class="btn-ai" id="btnMic" type="button">Falar</button>
+              <button class="btn-ai" id="btnFinalizePhase" type="button">Finalizar Fase</button>
+              <button class="btn-ai success" id="btnSendBridge" type="button">Enviar ao Bridge</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="conversation-scroll" id="conversationScroll"></div>
+
+        <div class="result-panel">
+          <p class="result-title">Resumo e interacao (scroll)</p>
+          <div class="result-preview" id="resultPreview">Nenhum resultado gerado ainda.</div>
+        </div>
+
+        <div class="result-panel">
+          <p class="result-title">Produto final (payload.text)</p>
+          <textarea id="finalText" placeholder="Ao finalizar a fase 3, o texto final aparecera aqui..."></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="worklist-footer">
+    <div class="worklist-footer-row">
+      <span>Origem esperada do bridge: <code>http://*:8099</code></span>
+      <button class="btn-debug" id="btnDebug" type="button" aria-expanded="false">Debug</button>
     </div>
-  </div>
+    <section class="debug-panel" id="debugPanel" hidden>
+      <div class="debug-head">Debug (oculto por padrao)</div>
+      <div class="debug-columns">
+        <div class="debug-col">
+          <p class="debug-title">Header normalizado</p>
+          <pre class="debug-pre" id="headerDebug">{}</pre>
+        </div>
+        <div class="debug-col">
+          <p class="debug-title">Logs</p>
+          <div class="debug-log" id="debugLog"></div>
+        </div>
+      </div>
+    </section>
+  </footer>
 
-  <div class="card">
-    <div><strong>Logs</strong></div>
-    <div id="log"></div>
-  </div>
-
-  <script>
+  <script type="module">
     const BRIDGE_ORIGIN_REGEX = /^http:\/\/((localhost)|(127\.0\.0\.1)|([a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*)|(\d{1,3}(?:\.\d{1,3}){3})):8099$/;
+    const STALE_TIMEOUT_MS = 30000;
+    const N8N_WEBHOOK_URL = "https://n8ndovitordalto.duckdns.org/webhook/anamnese";
+    const N8N_BASIC_AUTH_USER = "anamnese";
+    const N8N_BASIC_AUTH_PASSWORD = "AbVitorAnamneseseses123,.12";
+    const CONTINUAR_TEXTO = "Tenho mais coisas para falar. Posso continuar?";
+    const MAX_SPEECH_CHARS = 220;
 
-    const statusEl = document.getElementById("status");
-    const countEl = document.getElementById("count");
-    const searchInput = document.getElementById("searchInput");
-    const listEl = document.getElementById("list");
-    const headerViewEl = document.getElementById("headerView");
-    const textInputEl = document.getElementById("textInput");
-    const logEl = document.getElementById("log");
-    const btnFinalize = document.getElementById("btnFinalize");
+    const MOCK_ITEMS = [
+      { patient_name: "Maria Souza", patient_id: "MCK-001", exam: "US Abdome Total", accession_number: "A123" },
+      { patient_name: "Joao Pereira", patient_id: "MCK-002", exam: "US Tireoide", accession_number: "A124" },
+      { patient_name: "Ana Beatriz", patient_id: "MCK-003", exam: "US Obstetrico", accession_number: "A125" },
+    ];
 
-    let bridgeOrigin = "";
-    let allItems = [];
-    let filteredItems = [];
-    let selectedItem = null;
+    const state = {
+      bridgeOrigin: "",
+      allItems: [],
+      filteredItems: [],
+      selectedItem: null,
+      lastMessageAt: 0,
+      staleTimer: null,
+      logs: [],
+      debugOpen: false,
+      usingMock: false,
+      ai: {
+        selectedVoice: null,
+        recognition: null,
+        isListening: false,
+        stopRequested: false,
+        capturedText: "",
+        started: false,
+        phase: 1,
+        phaseTurnCount: 0,
+        phase1History: [],
+        phase2History: [],
+        age: "",
+        sex: "",
+        resumo1: "",
+        resumo2: "",
+        hipoteses: "",
+        propedeutica: "",
+      },
+    };
 
-    function log(message, data = null, isError = false) {
-      const line = `[${new Date().toLocaleTimeString()}] ${message}` + (data == null ? "" : `\\n${safeStringify(data)}`);
-      console[isError ? "error" : "log"](line);
-      const div = document.createElement("div");
-      div.textContent = line;
-      if (isError) {
-        div.style.color = "#b91c1c";
-      }
-      logEl.prepend(div);
-    }
-
-    function setStatus(text, isError = false) {
-      statusEl.textContent = text;
-      statusEl.className = `status small ${isError ? "err" : "ok"}`;
-    }
+    const els = {
+      statusWrap: document.getElementById("connectionStatus"),
+      statusText: document.getElementById("statusText"),
+      itemsCount: document.getElementById("itemsCount"),
+      searchInput: document.getElementById("searchInput"),
+      itemsList: document.getElementById("itemsList"),
+      editorState: document.getElementById("editorState"),
+      patientContext: document.getElementById("patientContext"),
+      phasePill: document.getElementById("phasePill"),
+      phaseNote: document.getElementById("phaseNote"),
+      btnStartFlow: document.getElementById("btnStartFlow"),
+      btnMic: document.getElementById("btnMic"),
+      btnFinalizePhase: document.getElementById("btnFinalizePhase"),
+      btnSendBridge: document.getElementById("btnSendBridge"),
+      conversationScroll: document.getElementById("conversationScroll"),
+      resultPreview: document.getElementById("resultPreview"),
+      finalText: document.getElementById("finalText"),
+      robotMouth: document.getElementById("robotMouth"),
+      btnDebug: document.getElementById("btnDebug"),
+      debugPanel: document.getElementById("debugPanel"),
+      headerDebug: document.getElementById("headerDebug"),
+      debugLog: document.getElementById("debugLog"),
+    };
 
     function safeStringify(value) {
       try {
@@ -161,6 +670,51 @@
       } catch (_err) {
         return String(value);
       }
+    }
+
+    function markdownToHtml(raw) {
+      if (window.marked && typeof window.marked.parse === "function") {
+        return window.marked.parse(String(raw || ""));
+      }
+      return String(raw || "");
+    }
+
+    function log(message, data = null, isError = false) {
+      const prefix = `[${new Date().toLocaleTimeString()}] ${message}`;
+      const content = data == null ? prefix : `${prefix}\n${safeStringify(data)}`;
+      const entry = { content, isError };
+
+      console[isError ? "error" : "log"](content);
+      state.logs.unshift(entry);
+      if (state.logs.length > 80) {
+        state.logs = state.logs.slice(0, 80);
+      }
+      renderDebugLogs();
+    }
+
+    function setConnectionState(mode, text) {
+      els.statusWrap.dataset.state = mode;
+      els.statusText.textContent = text;
+    }
+
+    function scheduleStaleCheck() {
+      if (state.staleTimer) {
+        clearTimeout(state.staleTimer);
+      }
+      state.staleTimer = setTimeout(() => {
+        if (!state.lastMessageAt) {
+          if (state.usingMock) {
+            setConnectionState("disconnected", "Modo demo (sem bridge)");
+          } else {
+            setConnectionState("disconnected", "Aguardando dados");
+          }
+          return;
+        }
+        const elapsed = Date.now() - state.lastMessageAt;
+        if (elapsed >= STALE_TIMEOUT_MS) {
+          setConnectionState("stale", "Sem atualizacao recente");
+        }
+      }, STALE_TIMEOUT_MS + 120);
     }
 
     function extractField(item, candidates) {
@@ -189,126 +743,733 @@
       };
     }
 
-    function formatItemLabel(item) {
-      const name = extractField(item, ["patient_name", "PatientName", "name", "patient"]) || "Paciente sem nome";
-      const exam = extractField(item, ["exam", "study_description", "StudyDescription", "requested_procedure_description", "RequestedProcedureDescription", "description"]) || "Exame sem descrição";
-      return `${name} - ${exam}`;
+    function toDisplayItem(item) {
+      return {
+        name: extractField(item, ["patient_name", "PatientName", "name", "patient"]) || "Paciente sem nome",
+        exam: extractField(item, ["exam", "study_description", "StudyDescription", "requested_procedure_description", "RequestedProcedureDescription", "description"]) || "Exame sem descricao",
+      };
     }
 
-    function renderList(items) {
-      listEl.innerHTML = "";
-      if (!items.length) {
+    function renderItemsList() {
+      els.itemsList.innerHTML = "";
+      if (!state.filteredItems.length) {
         const empty = document.createElement("div");
-        empty.className = "item";
-        empty.textContent = "Nenhum item encontrado.";
-        listEl.appendChild(empty);
+        empty.className = "worklist-empty";
+        empty.textContent = state.allItems.length
+          ? "Nenhum item encontrado para este filtro."
+          : "Nenhum exame recebido ainda.";
+        els.itemsList.appendChild(empty);
         return;
       }
-      items.forEach((item) => {
-        const row = document.createElement("div");
-        row.className = "item";
-        row.textContent = formatItemLabel(item);
-        row.addEventListener("click", () => handleSelection(item));
-        if (selectedItem === item) {
-          row.classList.add("active");
+
+      const fragment = document.createDocumentFragment();
+      state.filteredItems.forEach((item) => {
+        const view = toDisplayItem(item);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "worklist-item";
+        if (state.selectedItem === item) {
+          button.classList.add("active");
         }
-        listEl.appendChild(row);
+
+        const name = document.createElement("p");
+        name.className = "worklist-item-name";
+        name.textContent = view.name;
+
+        const exam = document.createElement("p");
+        exam.className = "worklist-item-exam";
+        exam.textContent = view.exam;
+
+        button.appendChild(name);
+        button.appendChild(exam);
+        button.addEventListener("click", () => selectItem(item));
+        fragment.appendChild(button);
+      });
+
+      els.itemsList.appendChild(fragment);
+    }
+
+    function renderPatientContext() {
+      if (!state.selectedItem) {
+        els.patientContext.textContent = "Aguardando selecao de paciente na lista.";
+        els.editorState.textContent = "Selecione um paciente";
+        els.headerDebug.textContent = "{}";
+        return;
+      }
+      const header = normalizeHeader(state.selectedItem);
+      els.editorState.textContent = "Paciente selecionado";
+      els.patientContext.innerHTML = "";
+      const line1 = document.createElement("div");
+      const line1Strong = document.createElement("strong");
+      line1Strong.textContent = "Paciente: ";
+      line1.appendChild(line1Strong);
+      line1.appendChild(document.createTextNode(header.patient_name || "Nao informado"));
+
+      const line2 = document.createElement("div");
+      const line2Strong = document.createElement("strong");
+      line2Strong.textContent = "Exame: ";
+      line2.appendChild(line2Strong);
+      line2.appendChild(document.createTextNode(header.exam || "Nao informado"));
+
+      const line3 = document.createElement("div");
+      const line3IdStrong = document.createElement("strong");
+      line3IdStrong.textContent = "ID: ";
+      line3.appendChild(line3IdStrong);
+      line3.appendChild(document.createTextNode(header.patient_id || "-"));
+      line3.appendChild(document.createTextNode(" | "));
+      const line3AccStrong = document.createElement("strong");
+      line3AccStrong.textContent = "Accession: ";
+      line3.appendChild(line3AccStrong);
+      line3.appendChild(document.createTextNode(header.accession_number || "-"));
+
+      els.patientContext.appendChild(line1);
+      els.patientContext.appendChild(line2);
+      els.patientContext.appendChild(line3);
+      els.headerDebug.textContent = safeStringify(header);
+    }
+
+    function applyFilter(query) {
+      const q = String(query || "").trim().toLowerCase();
+      state.filteredItems = !q
+        ? [...state.allItems]
+        : state.allItems.filter((item) => {
+            const view = toDisplayItem(item);
+            return `${view.name} ${view.exam}`.toLowerCase().includes(q);
+          });
+      renderItemsList();
+    }
+
+    function loadWorklist(items, opts = {}) {
+      state.allItems = Array.isArray(items) ? items : [];
+      state.filteredItems = [...state.allItems];
+      state.selectedItem = null;
+      state.usingMock = Boolean(opts.isMock);
+      if (!opts.isMock) {
+        state.lastMessageAt = Date.now();
+      }
+      els.itemsCount.textContent = String(state.allItems.length);
+      els.searchInput.value = "";
+      renderItemsList();
+      renderPatientContext();
+
+      if (opts.isMock) {
+        setConnectionState("disconnected", "Modo demo (sem bridge)");
+      } else {
+        setConnectionState("connected", `Conectado (${state.allItems.length} itens)`);
+      }
+      scheduleStaleCheck();
+    }
+
+    function selectItem(item) {
+      state.selectedItem = item;
+      renderItemsList();
+      renderPatientContext();
+      const header = normalizeHeader(item);
+      updatePhaseLabel();
+      log("Item selecionado.", { header });
+    }
+
+    function applyMockWorklistIfNeeded() {
+      if (state.allItems.length > 0) {
+        return;
+      }
+      loadWorklist(MOCK_ITEMS, { isMock: true });
+      log("Worklist mock ativada por ausencia de dados do bridge.");
+    }
+
+    function appendConversationMessage(text, from) {
+      const p = document.createElement("p");
+      p.className = `msg ${from}`;
+      p.textContent = `${from === "user" ? "Paciente" : "Robo"}: ${text}`;
+      els.conversationScroll.appendChild(p);
+      els.conversationScroll.scrollTop = els.conversationScroll.scrollHeight;
+    }
+
+    function clearConversation() {
+      els.conversationScroll.innerHTML = "";
+    }
+
+    function updatePhaseLabel() {
+      const labels = {
+        1: "Fase 1 - Anamnese Inicial",
+        2: "Fase 2 - Refinamento Diagnostico",
+        3: "Fase 3 - Consolidacao Final",
+      };
+      els.phasePill.textContent = labels[state.ai.phase] || "Fase";
+      if (!state.selectedItem) {
+        els.phaseNote.textContent = "Selecione um paciente para iniciar.";
+        return;
+      }
+      const header = normalizeHeader(state.selectedItem);
+      els.phaseNote.textContent = `Contexto atual: ${header.patient_name || "Paciente"} | ${header.exam || "Exame"}`;
+    }
+
+    function setMicListeningUI(isListening) {
+      state.ai.isListening = isListening;
+      els.btnMic.classList.toggle("mic-listening", isListening);
+      els.btnMic.textContent = isListening ? "Ouvindo" : "Falar";
+    }
+
+    function getBestVoice() {
+      const voices = speechSynthesis.getVoices();
+      const maria = voices.find((v) => v.name.toLowerCase().includes("maria") && v.lang === "pt-BR");
+      return maria || voices.find((v) => v.lang === "pt-BR") || null;
+    }
+
+    function ensureVoices() {
+      return new Promise((resolve) => {
+        if (speechSynthesis.getVoices().length > 0) {
+          state.ai.selectedVoice = getBestVoice();
+          resolve();
+          return;
+        }
+        speechSynthesis.onvoiceschanged = () => {
+          state.ai.selectedVoice = getBestVoice();
+          resolve();
+        };
       });
     }
 
-    function handleSelection(item) {
-      selectedItem = item;
-      const header = normalizeHeader(item);
-      headerViewEl.textContent = safeStringify(header);
-      renderList(filteredItems);
-      log("Item selecionado.", { header });
-      setStatus("Item selecionado.");
+    function speak(text) {
+      return new Promise((resolve) => {
+        const utter = new SpeechSynthesisUtterance(String(text || ""));
+        utter.lang = "pt-BR";
+        utter.voice = state.ai.selectedVoice;
+        utter.rate = 1;
+        utter.onboundary = () => {
+          els.robotMouth.classList.add("open");
+          setTimeout(() => els.robotMouth.classList.remove("open"), 120);
+        };
+        utter.onend = () => {
+          els.robotMouth.classList.remove("open");
+          resolve();
+        };
+        speechSynthesis.speak(utter);
+      });
     }
 
-    function filterItems(query) {
-      const q = String(query || "").trim().toLowerCase();
-      if (!q) {
-        filteredItems = [...allItems];
-      } else {
-        filteredItems = allItems.filter((item) => formatItemLabel(item).toLowerCase().includes(q));
+    async function chamarIA(payloadGemini) {
+      try {
+        console.log("Enviando para n8n:", payloadGemini);
+        const basicAuthToken = btoa(`${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}`);
+        const response = await fetch(N8N_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Basic ${basicAuthToken}`,
+          },
+          body: JSON.stringify(payloadGemini),
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Erro HTTP ${response.status}: ${text}`);
+        }
+        const rawText = await response.text();
+        let result = null;
+        if (!rawText || !rawText.trim()) {
+          result = { text: "" };
+        } else {
+          try {
+            result = JSON.parse(rawText);
+          } catch (_err) {
+            // Alguns webhooks retornam texto puro em vez de JSON.
+            result = { text: rawText };
+          }
+        }
+        console.log("Resposta n8n:", result);
+        return result;
+      } catch (error) {
+        console.error("Erro ao chamar n8n:", error);
+        throw error;
       }
-      renderList(filteredItems);
+    }
+
+    function extrairTextoIA(resultado) {
+      if (resultado == null) {
+        return "";
+      }
+      if (typeof resultado === "string") {
+        return resultado;
+      }
+      if (
+        Array.isArray(resultado.candidates)
+        && resultado.candidates[0]
+        && resultado.candidates[0].content
+        && Array.isArray(resultado.candidates[0].content.parts)
+      ) {
+        return resultado.candidates[0].content.parts
+          .map((p) => (p && typeof p.text === "string" ? p.text : ""))
+          .join("")
+          .trim();
+      }
+      if (typeof resultado.text === "string") {
+        return resultado.text;
+      }
+      if (typeof resultado.output === "string") {
+        return resultado.output;
+      }
+      if (Array.isArray(resultado) && resultado.length > 0) {
+        return extrairTextoIA(resultado[0]);
+      }
+      if (Array.isArray(resultado.data) && resultado.data.length > 0) {
+        return extrairTextoIA(resultado.data[0]);
+      }
+      if (typeof resultado.response === "string") {
+        return resultado.response;
+      }
+      if (resultado.response && typeof resultado.response === "object") {
+        return extrairTextoIA(resultado.response);
+      }
+      if (resultado.data && typeof resultado.data === "object" && !Array.isArray(resultado.data)) {
+        return extrairTextoIA(resultado.data);
+      }
+      return "";
+    }
+
+    function getHistoryByPhase() {
+      return state.ai.phase === 1 ? state.ai.phase1History : state.ai.phase2History;
+    }
+
+    function getPhase1SystemInstruction() {
+      return "Você é um robô médico simpático que realiza anamneses em português com linguagem simples e acolhedora. Comece com uma saudação se apresentando como um robô de triagem para ajudar seu médico. Diga para o usuario clicar no botão falar para te responder. Depois siga fazendo perguntas médicas como em uma pré-consulta em pronto atendimento. Sua linguagem deve ser clara, simpática e objetiva. Faça apenas UMA pergunta por vez. Após a resposta, espere pela próxima interação antes de continuar. Siga o padrão da anamnese médica: identifique a queixa principal e sua duração, inicie perguntas abertas sobre o início. Depois tente determinar com maior precisão o início e a duração. Colha informações a respeito da queixa principal com relação localização e evolução dos sintomas. Questione sobre antecedentes médicos, uso de medicações para o evento atual e medicamentos no dia a dia. Confirme mais uma vez sobre as medicações de uso diário. Questione de alergias e antecedentes medicamentosos. Não faça diagnóstico, apenas colete dados. Evite linguagem técnica. Responda em texto simples sem marcações";
+    }
+
+    function getPhase2SystemInstruction() {
+      const header = normalizeHeader(state.selectedItem || {});
+      return `Resumo inicial do paciente ${header.patient_name || "Paciente"} de ${state.ai.age || "idade não informada"} anos: ${state.ai.resumo1}. - Gere 3 hipóteses diagnósticas internas (não as exiba). - Comece imediatamente com UMA pergunta objetiva, sem qualquer saudação, para tentar confirmar a 1ª hipótese. Siga realizando até 6 perguntas a fim de confirmar uma das hipóteses e excluir as demais. Sua linguagem deve ser clara, simpática e objetiva. Faça apenas UMA pergunta por vez. Após a resposta, espere pela próxima interação antes de continuar. Evite linguagem técnica. Responda em texto simples sem marcações. Caso chegue a uma conclusão diagnóstica não fale, apenas comunique que já tem dados suficientes.`;
+    }
+
+    function formatUserFacingError(err) {
+      const raw = String(err || "");
+      const lower = raw.toLowerCase();
+      if (lower.includes("erro http")) {
+        return "Falha ao consultar IA no n8n webhook. Verifique conectividade e o endpoint do fluxo.";
+      }
+      return raw;
+    }
+
+    function montarPayloadGemini(system, history, promptAtual) {
+      const contents = [];
+      if (Array.isArray(history)) {
+        for (const item of history) {
+          if (!item || !item.content) {
+            continue;
+          }
+          const role = item.role === "assistant" || item.role === "model" ? "model" : "user";
+          contents.push({
+            role,
+            parts: [{ text: String(item.content) }],
+          });
+        }
+      }
+
+      const last = Array.isArray(history) && history.length ? history[history.length - 1] : null;
+      const promptJaNoHistorico = !!(last
+        && last.role === "user"
+        && String(last.content || "").trim() === String(promptAtual || "").trim());
+
+      if (promptAtual && !promptJaNoHistorico) {
+        contents.push({
+          role: "user",
+          parts: [{ text: String(promptAtual) }],
+        });
+      }
+
+      return {
+        systemInstruction: {
+          parts: [
+            {
+              text: String(system || ""),
+            },
+          ],
+        },
+        contents,
+        generationConfig: {
+          maxOutputTokens: 150,
+          temperature: 0.6,
+        },
+      };
+    }
+
+    async function askGemini(question) {
+      const history = getHistoryByPhase();
+      const systemInstructionText = state.ai.phase === 1 ? getPhase1SystemInstruction() : getPhase2SystemInstruction();
+      const payloadGemini = montarPayloadGemini(systemInstructionText, history, question);
+      const result = await chamarIA(payloadGemini);
+      const text = extrairTextoIA(result);
+      if (!text) {
+        throw new Error("Webhook n8n respondeu vazio/sem texto.");
+      }
+      state.ai.phaseTurnCount += 1;
+      return text;
+    }
+
+    async function handleUserTurn(userText) {
+      if (!userText.trim()) {
+        return;
+      }
+      const history = getHistoryByPhase();
+      appendConversationMessage(userText, "user");
+      history.push({ role: "user", content: userText });
+
+      const botText = await askGemini(userText);
+      appendConversationMessage(botText, "bot");
+      history.push({ role: "assistant", content: botText });
+      await speak(botText);
+    }
+
+    async function startFlow() {
+      if (!state.selectedItem) {
+        alert("Selecione um paciente da Worklist antes de iniciar.");
+        return;
+      }
+      await ensureVoices();
+
+      state.ai.started = true;
+      state.ai.phase = 1;
+      state.ai.phaseTurnCount = 0;
+      state.ai.phase1History = [];
+      state.ai.phase2History = [];
+      state.ai.resumo1 = "";
+      state.ai.resumo2 = "";
+      state.ai.hipoteses = "";
+      state.ai.propedeutica = "";
+      els.resultPreview.textContent = "Entrevista iniciada. Conduza a conversa por voz e finalize a fase quando necessario.";
+      els.finalText.value = "";
+      clearConversation();
+      updatePhaseLabel();
+
+      const nomePaciente = normalizeHeader(state.selectedItem).patient_name || "Paciente";
+      localStorage.setItem("Nome", nomePaciente);
+      const saudacao = `Olá, meu nome é ${nomePaciente}.`;
+      log("Fluxo IA iniciado.", { nomePaciente });
+      await handleUserTurn(saudacao);
+    }
+
+    async function toggleListen() {
+      if (!state.ai.started || state.ai.phase >= 3) {
+        alert("Inicie o fluxo e esteja na fase 1 ou 2 para usar voz.");
+        return;
+      }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Este navegador nao suporta Web Speech API");
+        return;
+      }
+
+      try {
+        if (!state.ai.isListening) {
+          state.ai.stopRequested = false;
+          state.ai.capturedText = "";
+          speechSynthesis.cancel();
+
+          state.ai.recognition = new SpeechRecognition();
+          state.ai.recognition.lang = "pt-BR";
+          state.ai.recognition.continuous = true;
+          state.ai.recognition.interimResults = false;
+
+          state.ai.recognition.onresult = (evt) => {
+            for (let i = evt.resultIndex; i < evt.results.length; i += 1) {
+              if (evt.results[i].isFinal) {
+                const chunk = evt.results[i][0].transcript.trim();
+                state.ai.capturedText += (state.ai.capturedText ? " " : "") + chunk;
+              }
+            }
+            if (state.ai.capturedText.length >= MAX_SPEECH_CHARS && !state.ai.stopRequested) {
+              state.ai.stopRequested = true;
+              state.ai.capturedText += ` ${CONTINUAR_TEXTO}`;
+              state.ai.recognition.stop();
+            }
+          };
+
+          state.ai.recognition.onend = async () => {
+            if (!state.ai.stopRequested) {
+              state.ai.recognition.start();
+              return;
+            }
+            state.ai.stopRequested = false;
+            setMicListeningUI(false);
+            const captured = state.ai.capturedText.trim();
+            if (captured) {
+              await handleUserTurn(captured);
+            }
+          };
+
+          setMicListeningUI(true);
+          state.ai.recognition.start();
+        } else {
+          state.ai.stopRequested = true;
+          if (state.ai.recognition) {
+            state.ai.recognition.stop();
+          }
+          setMicListeningUI(false);
+        }
+      } catch (err) {
+        log("Erro no reconhecimento de voz.", { error: String(err) }, true);
+        state.ai.stopRequested = false;
+        setMicListeningUI(false);
+        alert("Erro de voz: " + err.message);
+      }
+    }
+
+    async function gerarResumoFase1() {
+      const historyText = state.ai.phase1History
+        .map((m) => `${m.role === "user" ? "Paciente" : "Robo"}: ${m.content}`)
+        .join("\n");
+
+      const promptResumo = `Abaixo está o histórico completo de uma entrevista médica feita por um robô:\n\n${historyText}\n\nCom base nessa conversa, gere um resumo estruturado em texto simples com os seguintes campos:\n\n- Queixa principal e duração:\n- História da Moléstia Atual:\n- Antecedentes:\n- Alergias:\n- Medicações em uso:\n\nResponda apenas com os campos e o conteúdo correspondente.`;
+      const systemResumo = "Você é um assistente médico e deve retornar somente o resumo estruturado solicitado.";
+      const payloadGemini = montarPayloadGemini(systemResumo, [], promptResumo);
+      const result = await chamarIA(payloadGemini);
+      state.ai.resumo1 = extrairTextoIA(result);
+      if (!state.ai.resumo1) {
+        throw new Error("Webhook n8n respondeu vazio na fase 1.");
+      }
+      localStorage.setItem("Resumo", state.ai.resumo1);
+      els.resultPreview.innerHTML = markdownToHtml(state.ai.resumo1);
+    }
+
+    async function finalizarFase1EIniciarFase2() {
+      if (!state.ai.phase1History.length) {
+        alert("Conduza algumas interacoes antes de finalizar a fase 1.");
+        return;
+      }
+      await gerarResumoFase1();
+
+      state.ai.age = window.prompt("Qual a sua idade?") || "";
+      state.ai.sex = window.prompt("Qual seu sexo biologico? (Feminino ou Masculino)") || "";
+      localStorage.setItem("idadePaciente", state.ai.age);
+      localStorage.setItem("sexoPaciente", state.ai.sex);
+
+      state.ai.phase = 2;
+      state.ai.phaseTurnCount = 0;
+      updatePhaseLabel();
+      await handleUserTurn("Vamos começar");
+    }
+
+    async function gerarResumoFase2() {
+      const historyText = state.ai.phase2History
+        .map((m) => `${m.role === "user" ? "Paciente" : "Robo"}: ${m.content}`)
+        .join("\n");
+      const resumoAnterior = state.ai.resumo1 || localStorage.getItem("Resumo") || "";
+
+      const promptResumo = `Abaixo está o histórico completo de uma entrevista médica feita por um robô:\n\n${historyText}\n\nCom base nessa conversa, atualize o resumo estruturado a seguir em texto simples:\n${resumoAnterior}\n\nResponda apenas com os campos do resumo estruturado e o conteúdo correspondente.`;
+      const systemResumo = "Você é um assistente médico e deve retornar somente o resumo estruturado solicitado.";
+      const payloadGemini = montarPayloadGemini(systemResumo, [], promptResumo);
+      const result = await chamarIA(payloadGemini);
+      state.ai.resumo2 = extrairTextoIA(result);
+      if (!state.ai.resumo2) {
+        throw new Error("Webhook n8n respondeu vazio na fase 2.");
+      }
+      localStorage.setItem("Resumo2", state.ai.resumo2);
+    }
+
+    async function gerarHipoteses() {
+      const header = normalizeHeader(state.selectedItem || {});
+      const prompt = `Haja como um médico especialista. Abaixo está o resumo de uma anamnese médica, feita por um robô:\nIdade do paciente: ${state.ai.age || "não informada"}\nSexo do paciente: ${state.ai.sex || "não informado"}\nPaciente: ${header.patient_name || "Paciente"}\n${state.ai.resumo2}\n\nCom base nestes dados anamnese, gere 3 Hipósteses diagnósticas.\nResponda apenas com as hipóteses em ordem de probabilidade, da mais provável para menos provável.`;
+      const systemHipotese = "Você é um médico especialista e deve responder somente com hipóteses diagnósticas em texto.";
+      const payloadGemini = montarPayloadGemini(systemHipotese, [], prompt);
+      const result = await chamarIA(payloadGemini);
+      state.ai.hipoteses = extrairTextoIA(result);
+      if (!state.ai.hipoteses) {
+        throw new Error("Webhook n8n respondeu vazio na geração de hipóteses.");
+      }
+      localStorage.setItem("Hipoteses", state.ai.hipoteses);
+    }
+
+    async function gerarPropedeutica() {
+      const prompt = `Haja como um médico especialista. Abaixo estão 3 hipóteses diagnósticas elaboradas por uma entrevista médica:\n${state.ai.hipoteses}\nPara cada hipótese:\n- cite 2 testes de exame físico médico usados na sua confirmação ou questões de anamnese pertinentes.\n- cite 1 exame complementar que pode ser usado na sua confirmação. Se não for necessário comente não ser necessário.\nCite os achados esperados para estes exames serem considerados no contexto desta hipótese.\nResponda apenas com texto.`;
+      const systemPropedeutica = "Você é um médico especialista e deve responder somente com propedêutica em texto.";
+      const payloadGemini = montarPayloadGemini(systemPropedeutica, [], prompt);
+      const result = await chamarIA(payloadGemini);
+      state.ai.propedeutica = extrairTextoIA(result);
+      if (!state.ai.propedeutica) {
+        throw new Error("Webhook n8n respondeu vazio na geração de propedêutica.");
+      }
+      localStorage.setItem("Propedeutica", state.ai.propedeutica);
+    }
+
+    function montarProdutoFinal() {
+      const final = [
+        "Resumo Estruturado:",
+        state.ai.resumo2,
+        "",
+        "Hipoteses Diagnosticas:",
+        state.ai.hipoteses,
+        "",
+        "Propedeutica:",
+        state.ai.propedeutica,
+      ].join("\n").trim();
+
+      els.finalText.value = final;
+      els.resultPreview.innerHTML = markdownToHtml(
+        `## Resumo Estruturado\n${state.ai.resumo2}\n\n## Hipoteses\n${state.ai.hipoteses}\n\n## Propedeutica\n${state.ai.propedeutica}`,
+      );
+    }
+
+    async function finalizarFase2EConsolidarFase3() {
+      if (!state.ai.phase2History.length) {
+        alert("Conduza algumas interacoes antes de finalizar a fase 2.");
+        return;
+      }
+      await gerarResumoFase2();
+      await gerarHipoteses();
+      await gerarPropedeutica();
+      state.ai.phase = 3;
+      updatePhaseLabel();
+      montarProdutoFinal();
+      appendConversationMessage("Consolidacao final pronta. Revise e envie ao bridge.", "bot");
+    }
+
+    async function finalizeCurrentPhase() {
+      if (!state.ai.started) {
+        alert("Clique em Iniciar para começar o fluxo.");
+        return;
+      }
+      if (state.ai.phase === 1) {
+        await finalizarFase1EIniciarFase2();
+        return;
+      }
+      if (state.ai.phase === 2) {
+        await finalizarFase2EConsolidarFase3();
+        return;
+      }
+      alert("A fase 3 ja esta concluida. Use Enviar ao Bridge.");
+    }
+
+    function sendResultToBridge() {
+      if (!state.selectedItem) {
+        alert("Selecione um item da Worklist antes de enviar.");
+        return;
+      }
+      const text = String(els.finalText.value || "").trim();
+      if (!text) {
+        alert("O texto final esta vazio. Conclua o fluxo ou edite o campo final.");
+        return;
+      }
+      if (!window.parent) {
+        alert("Janela pai indisponivel.");
+        return;
+      }
+
+      const header = normalizeHeader(state.selectedItem);
+      const message = {
+        type: "ANAMNESE_RESULT",
+        source: "cloud_test_site",
+        timestamp: new Date().toISOString(),
+        payload: {
+          header,
+          selected_item: state.selectedItem,
+          text,
+        },
+      };
+
+      const targetOrigin = state.bridgeOrigin || "*";
+      window.parent.postMessage(message, targetOrigin);
+      log("ANAMNESE_RESULT enviado.", { targetOrigin, text_len: text.length });
+      setConnectionState("connected", "Resultado enviado");
+    }
+
+    function renderDebugLogs() {
+      if (!state.debugOpen) {
+        return;
+      }
+      els.debugLog.innerHTML = state.logs
+        .map((entry) => {
+          const escaped = entry.content
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\n/g, "<br>");
+          const color = entry.isError ? "#a11a1a" : "#23344c";
+          return `<div style="margin-bottom:10px;color:${color};">${escaped}</div>`;
+        })
+        .join("");
+    }
+
+    function toggleDebug() {
+      state.debugOpen = !state.debugOpen;
+      els.debugPanel.hidden = !state.debugOpen;
+      els.btnDebug.setAttribute("aria-expanded", String(state.debugOpen));
+      els.btnDebug.textContent = state.debugOpen ? "Ocultar Debug" : "Debug";
+      renderDebugLogs();
     }
 
     function isAllowedBridgeOrigin(origin) {
       return BRIDGE_ORIGIN_REGEX.test(String(origin || ""));
     }
 
-    function applyWorklistData(msg, origin) {
-      const payload = msg && msg.payload ? msg.payload : {};
+    function handleIncomingMessage(event) {
+      const data = event.data || {};
+
+      if (!isAllowedBridgeOrigin(event.origin)) {
+        log("Mensagem ignorada por origem nao permitida.", {
+          origin: event.origin,
+          type: data.type || "",
+        });
+        return;
+      }
+
+      if (data.type !== "WORKLIST_DATA") {
+        log("Mensagem recebida (tipo ignorado).", {
+          origin: event.origin,
+          type: data.type || "",
+        });
+        return;
+      }
+
+      const payload = data.payload || {};
       const items = Array.isArray(payload.items) ? payload.items : [];
-      bridgeOrigin = origin;
-      allItems = items;
-      filteredItems = [...allItems];
-      selectedItem = null;
-      countEl.textContent = String(items.length);
-      headerViewEl.textContent = "";
-      renderList(filteredItems);
-      setStatus(`Worklist recebida (${items.length} item(ns)).`);
-      log("Worklist recebida.", {
-        origin,
+      state.bridgeOrigin = event.origin;
+      loadWorklist(items, { isMock: false });
+      log("WORKLIST_DATA recebida.", {
+        origin: event.origin,
         count: items.length,
-        source: msg.source,
-        timestamp: msg.timestamp,
+        source: data.source,
+        timestamp: data.timestamp,
       });
     }
 
-    function sendResult() {
-      if (!selectedItem) {
-        setStatus("Selecione um item antes de finalizar.", true);
-        log("Finalização bloqueada: sem item selecionado.", null, true);
-        return;
-      }
-      if (!window.parent) {
-        setStatus("Janela pai indisponível.", true);
-        return;
-      }
-
-      const header = normalizeHeader(selectedItem);
-      const out = {
-        type: "ANAMNESE_RESULT",
-        source: "cloud_test_site",
-        timestamp: new Date().toISOString(),
-        payload: {
-          header,
-          selected_item: selectedItem,
-          text: String(textInputEl.value || ""),
-        },
-      };
-      const targetOrigin = bridgeOrigin || "*";
-      window.parent.postMessage(out, targetOrigin);
-      log("Resultado enviado ao bridge.", { targetOrigin, type: out.type, payloadPreview: { header, text_len: out.payload.text.length } });
-      setStatus("Resultado enviado ao bridge.");
+    function bindEvents() {
+      window.addEventListener("message", handleIncomingMessage);
+      els.searchInput.addEventListener("input", () => applyFilter(els.searchInput.value));
+      els.btnDebug.addEventListener("click", toggleDebug);
+      els.btnStartFlow.addEventListener("click", () => {
+        startFlow().catch((err) => {
+          const userError = formatUserFacingError(err);
+          log("Falha ao iniciar fluxo.", { error: userError }, true);
+          alert("Falha ao iniciar fluxo: " + userError);
+        });
+      });
+      els.btnMic.addEventListener("click", () => {
+        toggleListen().catch((err) => {
+          const userError = formatUserFacingError(err);
+          log("Falha no fluxo de voz.", { error: userError }, true);
+          alert("Falha no fluxo de voz: " + userError);
+        });
+      });
+      els.btnFinalizePhase.addEventListener("click", () => {
+        finalizeCurrentPhase().catch((err) => {
+          log("Falha ao finalizar fase.", { error: String(err) }, true);
+          alert("Erro ao finalizar fase: " + err.message);
+        });
+      });
+      els.btnSendBridge.addEventListener("click", sendResultToBridge);
     }
 
-    window.addEventListener("message", (event) => {
-      const data = event.data || {};
-      if (!isAllowedBridgeOrigin(event.origin)) {
-        log("Mensagem ignorada por origin não permitido.", { origin: event.origin, type: data.type || "" });
-        return;
-      }
-      if (data.type !== "WORKLIST_DATA") {
-        log("Mensagem recebida (não-WORKLIST_DATA).", { origin: event.origin, type: data.type || "", data });
-        return;
-      }
-      applyWorklistData(data, event.origin);
-    });
+    function boot() {
+      setConnectionState("disconnected", "Aguardando dados");
+      updatePhaseLabel();
+      renderItemsList();
+      renderPatientContext();
+      bindEvents();
+      scheduleStaleCheck();
+      setTimeout(applyMockWorklistIfNeeded, 1200);
+      ensureVoices().catch(() => undefined);
+      log("Pagina carregada. Aguardando WORKLIST_DATA via postMessage...");
+    }
 
-    searchInput.addEventListener("input", () => {
-      filterItems(searchInput.value);
-    });
-
-    btnFinalize.addEventListener("click", () => {
-      sendResult();
-    });
-
-    log("Página carregada. Aguardando WORKLIST_DATA via postMessage...");
-    setStatus("Aguardando WORKLIST_DATA...");
+    boot();
   </script>
 </body>
 </html>
