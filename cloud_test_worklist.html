@@ -541,9 +541,24 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 980px), ((orientation: portrait) and (max-width: 1280px)) {
+      body.worklist-body {
+        display: block;
+        min-height: auto;
+        overflow-y: auto;
+      }
+
+      .worklist-topbar {
+        position: static !important;
+        top: auto !important;
+        inset: auto !important;
+        z-index: auto !important;
+      }
+
       .worklist-stage {
         grid-template-columns: 1fr;
+        min-height: auto;
+        flex: none;
       }
 
       .worklist-stage.worklist-collapsed {
@@ -558,6 +573,22 @@
         padding: 10px 12px;
       }
 
+      .worklist-card {
+        overflow: visible;
+      }
+
+      .ia-shell {
+        grid-template-rows: none;
+      }
+
+      .worklist-list,
+      .conversation-scroll,
+      .result-preview,
+      #finalText {
+        max-height: none;
+        overflow: visible;
+      }
+
       .ai-box {
         grid-template-columns: 1fr;
       }
@@ -567,7 +598,7 @@
       }
 
       .conversation-scroll {
-        max-height: 280px;
+        min-height: 180px;
       }
 
       .debug-columns {
@@ -581,6 +612,12 @@
 
       .debug-col:last-child {
         border-bottom: 0;
+      }
+
+      .worklist-footer,
+      .debug-panel {
+        position: static !important;
+        inset: auto !important;
       }
     }
   </style>
