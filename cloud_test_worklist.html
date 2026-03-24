@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cloud Test Worklist</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #dbe2ea;
+      --btn: #1d4ed8;
+      --ok: #0f766e;
+      --err: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 12px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--btn);
+      color: #fff;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .small { font-size: 12px; color: var(--muted); }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+    #list {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .item {
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .item:hover { background: #eef2ff; }
+    .item.active { background: #dbeafe; }
+    #headerView {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    #log {
+      max-height: 180px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      resize: vertical;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="row">
+      <strong>Cloud Test Worklist</strong>
+      <span id="status" class="status small">Aguardando WORKLIST_DATA...</span>
+    </div>
+    <div class="small">Origem bridge esperada: `http://*:8099` (localhost, IP ou .local)</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <input id="searchInput" type="text" placeholder="Buscar paciente/exame..." />
+    </div>
+    <div class="small">Itens recebidos: <span id="count">0</span></div>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <div><strong>Cabeçalho normalizado</strong></div>
+    <div id="headerView" class="small"></div>
+  </div>
+
+  <div class="card">
+    <div><strong>Texto</strong></div>
+    <textarea id="textInput" placeholder="Digite aqui..."></textarea>
+    <div class="row" style="margin-top:8px;">
+      <button id="btnFinalize" type="button">Finalizar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div><strong>Logs</strong></div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const BRIDGE_ORIGIN_REGEX = /^http:\/\/((localhost)|(127\.0\.0\.1)|([a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*)|(\d{1,3}(?:\.\d{1,3}){3})):8099$/;
+
+    const statusEl = document.getElementById("status");
+    const countEl = document.getElementById("count");
+    const searchInput = document.getElementById("searchInput");
+    const listEl = document.getElementById("list");
+    const headerViewEl = document.getElementById("headerView");
+    const textInputEl = document.getElementById("textInput");
+    const logEl = document.getElementById("log");
+    const btnFinalize = document.getElementById("btnFinalize");
+
+    let bridgeOrigin = "";
+    let allItems = [];
+    let filteredItems = [];
+    let selectedItem = null;
+
+    function log(message, data = null, isError = false) {
+      const line = `[${new Date().toLocaleTimeString()}] ${message}` + (data == null ? "" : `\\n${safeStringify(data)}`);
+      console[isError ? "error" : "log"](line);
+      const div = document.createElement("div");
+      div.textContent = line;
+      if (isError) {
+        div.style.color = "#b91c1c";
+      }
+      logEl.prepend(div);
+    }
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.className = `status small ${isError ? "err" : "ok"}`;
+    }
+
+    function safeStringify(value) {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch (_err) {
+        return String(value);
+      }
+    }
+
+    function extractField(item, candidates) {
+      if (!item || typeof item !== "object") {
+        return "";
+      }
+      for (const key of candidates) {
+        const value = item[key];
+        if (value != null && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+      return "";
+    }
+
+    function normalizeHeader(item) {
+      return {
+        patient_name: extractField(item, ["patient_name", "PatientName", "name", "patient"]),
+        patient_id: extractField(item, ["patient_id", "PatientID", "id", "registro"]),
+        birth_date: extractField(item, ["birth_date", "BirthDate", "PatientBirthDate"]),
+        modality: extractField(item, ["modality", "Modality"]),
+        exam: extractField(item, ["exam", "study_description", "StudyDescription", "requested_procedure_description", "RequestedProcedureDescription", "description"]),
+        description: extractField(item, ["description", "requested_procedure_description", "RequestedProcedureDescription", "study_description", "StudyDescription"]),
+        accession_number: extractField(item, ["accession_number", "AccessionNumber"]),
+        session_number: extractField(item, ["session_number", "ScheduledProcedureStepID", "scheduled_procedure_step_id"]),
+      };
+    }
+
+    function formatItemLabel(item) {
+      const name = extractField(item, ["patient_name", "PatientName", "name", "patient"]) || "Paciente sem nome";
+      const exam = extractField(item, ["exam", "study_description", "StudyDescription", "requested_procedure_description", "RequestedProcedureDescription", "description"]) || "Exame sem descrição";
+      return `${name} - ${exam}`;
+    }
+
+    function renderList(items) {
+      listEl.innerHTML = "";
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "item";
+        empty.textContent = "Nenhum item encontrado.";
+        listEl.appendChild(empty);
+        return;
+      }
+      items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.textContent = formatItemLabel(item);
+        row.addEventListener("click", () => handleSelection(item));
+        if (selectedItem === item) {
+          row.classList.add("active");
+        }
+        listEl.appendChild(row);
+      });
+    }
+
+    function handleSelection(item) {
+      selectedItem = item;
+      const header = normalizeHeader(item);
+      headerViewEl.textContent = safeStringify(header);
+      renderList(filteredItems);
+      log("Item selecionado.", { header });
+      setStatus("Item selecionado.");
+    }
+
+    function filterItems(query) {
+      const q = String(query || "").trim().toLowerCase();
+      if (!q) {
+        filteredItems = [...allItems];
+      } else {
+        filteredItems = allItems.filter((item) => formatItemLabel(item).toLowerCase().includes(q));
+      }
+      renderList(filteredItems);
+    }
+
+    function isAllowedBridgeOrigin(origin) {
+      return BRIDGE_ORIGIN_REGEX.test(String(origin || ""));
+    }
+
+    function applyWorklistData(msg, origin) {
+      const payload = msg && msg.payload ? msg.payload : {};
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      bridgeOrigin = origin;
+      allItems = items;
+      filteredItems = [...allItems];
+      selectedItem = null;
+      countEl.textContent = String(items.length);
+      headerViewEl.textContent = "";
+      renderList(filteredItems);
+      setStatus(`Worklist recebida (${items.length} item(ns)).`);
+      log("Worklist recebida.", {
+        origin,
+        count: items.length,
+        source: msg.source,
+        timestamp: msg.timestamp,
+      });
+    }
+
+    function sendResult() {
+      if (!selectedItem) {
+        setStatus("Selecione um item antes de finalizar.", true);
+        log("Finalização bloqueada: sem item selecionado.", null, true);
+        return;
+      }
+      if (!window.parent) {
+        setStatus("Janela pai indisponível.", true);
+        return;
+      }
+
+      const header = normalizeHeader(selectedItem);
+      const out = {
+        type: "ANAMNESE_RESULT",
+        source: "cloud_test_site",
+        timestamp: new Date().toISOString(),
+        payload: {
+          header,
+          selected_item: selectedItem,
+          text: String(textInputEl.value || ""),
+        },
+      };
+      const targetOrigin = bridgeOrigin || "*";
+      window.parent.postMessage(out, targetOrigin);
+      log("Resultado enviado ao bridge.", { targetOrigin, type: out.type, payloadPreview: { header, text_len: out.payload.text.length } });
+      setStatus("Resultado enviado ao bridge.");
+    }
+
+    window.addEventListener("message", (event) => {
+      const data = event.data || {};
+      if (!isAllowedBridgeOrigin(event.origin)) {
+        log("Mensagem ignorada por origin não permitido.", { origin: event.origin, type: data.type || "" });
+        return;
+      }
+      if (data.type !== "WORKLIST_DATA") {
+        log("Mensagem recebida (não-WORKLIST_DATA).", { origin: event.origin, type: data.type || "", data });
+        return;
+      }
+      applyWorklistData(data, event.origin);
+    });
+
+    searchInput.addEventListener("input", () => {
+      filterItems(searchInput.value);
+    });
+
+    btnFinalize.addEventListener("click", () => {
+      sendResult();
+    });
+
+    log("Página carregada. Aguardando WORKLIST_DATA via postMessage...");
+    setStatus("Aguardando WORKLIST_DATA...");
+  </script>
+</body>
+</html>

@@ -15,14 +15,23 @@ O site em nuvem funciona como interface do médico e cliente do bridge local.
     - SR -> HTML
   - Enfileira tudo em memória.
   - Mantém módulo MWL em background com cache em memória.
-  - Sobe API local (`http://127.0.0.1:8787`).
-  - Sobe bridge estático (`http://127.0.0.1:8099/bridge/index.html`).
+  - Sobe API local (`http://<host>:8787`, bind `0.0.0.0`).
+  - Sobe bridge estático (`http://<host>:8099/bridge/index.html`).
+  - Sobe bridge worklist (`http://<host>:8099/bridge/index_worklist.html`).
+  - Persistência de config em `./CONFIG/CONFIG.JSON`.
+  - Persistência de resultado worklist em `./WORKLIST_DATA/`.
 
 - Bridge local (`bridge/bridge.js`)
   - Lê fila da API local.
   - Busca payload (`/payload/{message_id}`).
   - Entrega para o site cloud via `postMessage`.
   - Recebe `ack`/`settings_update` do site e repassa para API local.
+
+- Bridge worklist (`bridge/index_worklist.html` + `bridge/bridge_worklist.js`)
+  - Consulta `GET /worklist/raw`.
+  - Envia `WORKLIST_DATA` ao iframe cloud via `postMessage`.
+  - Recebe `ANAMNESE_RESULT` do iframe.
+  - Persiste resultado via `POST /worklist/result`.
 
 - Site cloud (`cloud_page`)
   - Carrega interface principal (`index2.html`).
@@ -58,6 +67,8 @@ Base: `http://127.0.0.1:8787`
 - `GET /worklist/items` (retorna cache atual e dispara refresh assíncrono)
 - `GET /worklist/patients` (retorna lista derivada de pacientes e dispara refresh assíncrono)
 - `POST /worklist/refresh`
+- `GET /worklist/raw` (retorna payload bruto JSON-safe da worklist)
+- `POST /worklist/result` (salva retorno do cloud em `./WORKLIST_DATA/`)
 
 ## Contrato de mensagens (cloud <-> bridge)
 
@@ -70,6 +81,16 @@ Origem bridge: `http://127.0.0.1:8099`
 - Enviadas pelo cloud:
   - `ack` -> `{ type: "ack", message_id }`
   - `settings_update` -> `{ type: "settings_update", MODEL_ACTIVATED, ANALISE_CHOICE }`
+
+## Contrato de mensagens (bridge worklist <-> cloud)
+
+Origem bridge worklist: `http://<host>:8099`
+
+- Enviadas pelo bridge worklist:
+  - `WORKLIST_DATA` -> `{ type, source, timestamp, payload: { count, items, status, source } }`
+
+- Recebidas do cloud:
+  - `ANAMNESE_RESULT` -> `{ type, source, timestamp, payload: { header, selected_item, text } }`
 
 ## OCR no site
 
@@ -94,6 +115,10 @@ Fluxo esperado para consumo futuro:
 2. API responde imediatamente com o cache em memória atual.
 3. Após responder, o backend dispara atualização MWL em background.
 4. Nova chamada do site já tende a receber cache atualizado.
+
+Para integração rápida de teste cloud, existe:
+
+- `cloud_page/cloud_test_worklist.html`
 
 ## Metadados DICOM relevantes no fluxo
 
