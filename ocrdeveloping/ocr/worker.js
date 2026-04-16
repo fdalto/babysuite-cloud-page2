@@ -19,6 +19,11 @@ const runtime = {
   },
 };
 const MIN_FINAL_OCR_CONFIDENCE = 0.5;
+const BASE_URL = "https://arquivos-cinebaby.duckdns.org";
+const TOKEN = "tokenBaby123!";
+const REC_MODEL_URL = `${BASE_URL}/rec.onnx?token=${TOKEN}`;
+const DET_MODEL_URL = `${BASE_URL}/det.onnx?token=${TOKEN}`;
+let modelCache = {};
 
 function postWorkerError(error) {
   self.postMessage({
@@ -38,8 +43,8 @@ function normalizeConfig(cfg) {
     oem: String(c.oem || "1"),
     paddleScriptUrl: c.paddleScriptUrl || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/ort.min.js",
     paddleWasmPaths: c.paddleWasmPaths || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/",
-    paddleDetModelPath: c.paddleDetModelPath || "../../ocrpaddle/models/onnx/det.onnx",
-    paddleRecModelPath: c.paddleRecModelPath || "../../ocrpaddle/models/onnx/rec.onnx",
+    paddleDetModelPath: c.paddleDetModelPath || DET_MODEL_URL,
+    paddleRecModelPath: c.paddleRecModelPath || REC_MODEL_URL,
     paddleDictCandidates: Array.isArray(c.paddleDictCandidates) && c.paddleDictCandidates.length
       ? c.paddleDictCandidates
       : [
@@ -89,6 +94,20 @@ async function loadText(path) {
   return response.text();
 }
 
+async function loadModel(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Falha ao carregar modelo ONNX ${url}: HTTP ${response.status}`);
+  return response.arrayBuffer();
+}
+
+async function getModel(url) {
+  if (modelCache[url]) return modelCache[url];
+
+  const buffer = await loadModel(url);
+  modelCache[url] = buffer;
+  return buffer;
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -110,11 +129,15 @@ async function ensurePaddleRuntime() {
   self.ort.env.wasm.wasmPaths = runtime.config.paddleWasmPaths;
   self.ort.env.wasm.numThreads = 1;
 
-  const [detSession, recSession, substitutionsText, ...dictTexts] = await Promise.all([
-    self.ort.InferenceSession.create(runtime.config.paddleDetModelPath, { executionProviders: ["wasm"] }),
-    self.ort.InferenceSession.create(runtime.config.paddleRecModelPath, { executionProviders: ["wasm"] }),
+  const [detModel, recModel, substitutionsText, ...dictTexts] = await Promise.all([
+    getModel(runtime.config.paddleDetModelPath),
+    getModel(runtime.config.paddleRecModelPath),
     loadText(runtime.config.paddleSubstitutionsPath).catch(() => null),
     ...runtime.config.paddleDictCandidates.map((path) => loadText(path).catch(() => null)),
+  ]);
+  const [detSession, recSession] = await Promise.all([
+    self.ort.InferenceSession.create(detModel, { executionProviders: ["wasm"] }),
+    self.ort.InferenceSession.create(recModel, { executionProviders: ["wasm"] }),
   ]);
 
   runtime.paddle.ort = self.ort;

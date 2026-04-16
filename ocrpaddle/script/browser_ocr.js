@@ -15,8 +15,10 @@ const detectionsEl = document.querySelector("#browserDetections");
 const stepTemplate = document.querySelector("#browserStepCardTemplate");
 const detectionTemplate = document.querySelector("#browserDetectionTemplate");
 
-const DET_MODEL_PATH = "models/onnx/det.onnx";
-const REC_MODEL_PATH = "models/onnx/rec.onnx";
+const BASE_URL = "https://arquivos-cinebaby.duckdns.org";
+const TOKEN = "tokenBaby123!";
+const REC_MODEL_URL = `${BASE_URL}/rec.onnx?token=${TOKEN}`;
+const DET_MODEL_URL = `${BASE_URL}/det.onnx?token=${TOKEN}`;
 const DICT_CANDIDATES = [
   "models/paddle/rec/ppocrv5_en_dict.txt",
   "models/paddle/rec/en_dict.txt",
@@ -25,6 +27,7 @@ const DICT_CANDIDATES = [
 const SUBSTITUTIONS_PATH = "ocr_substitutions.json";
 
 let sessionsPromise = null;
+let modelCache = {};
 
 window.addEventListener("error", (event) => {
   try {
@@ -69,12 +72,30 @@ async function loadText(path) {
   return response.text();
 }
 
+async function loadModel(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Falha ao carregar modelo ONNX ${url}: HTTP ${response.status}`);
+  return response.arrayBuffer();
+}
+
+async function getModel(url) {
+  if (modelCache[url]) return modelCache[url];
+
+  const buffer = await loadModel(url);
+  modelCache[url] = buffer;
+  return buffer;
+}
+
 async function createSessions() {
-  const [detSession, recSession, substitutionsText, ...dictTexts] = await Promise.all([
-    ort.InferenceSession.create(DET_MODEL_PATH, { executionProviders: ["wasm"] }),
-    ort.InferenceSession.create(REC_MODEL_PATH, { executionProviders: ["wasm"] }),
+  const [detModel, recModel, substitutionsText, ...dictTexts] = await Promise.all([
+    getModel(DET_MODEL_URL),
+    getModel(REC_MODEL_URL),
     loadText(SUBSTITUTIONS_PATH).catch(() => null),
     ...DICT_CANDIDATES.map((path) => loadText(path).catch(() => null)),
+  ]);
+  const [detSession, recSession] = await Promise.all([
+    ort.InferenceSession.create(detModel, { executionProviders: ["wasm"] }),
+    ort.InferenceSession.create(recModel, { executionProviders: ["wasm"] }),
   ]);
 
   const dictConfigs = dictTexts
